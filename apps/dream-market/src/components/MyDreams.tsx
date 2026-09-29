@@ -6,6 +6,7 @@ import { announce, onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { OwnedDream, Profile } from '../lib/types';
 import NameCard from './NameCard';
+import HaemongButton from './HaemongButton';
 import { ResellForm, ReviewForm } from './OwnedActions';
 
 export type Section = 'bought' | 'selling' | 'sold';
@@ -172,7 +173,7 @@ export default function MyDreams({ initialSection, profile, guest, onBack, onSig
           list.map((d) => {
             const { fortune, luck } = interpret(d.id);
             return (
-              <article key={d.id} className="owned">
+              <article key={d.id} className={`owned ${section === 'bought' ? 'gold-frame' : ''}`}>
                 <div className="owned-head">
                   <div>
                     <div className="owned-title">{d.title}</div>
@@ -217,6 +218,7 @@ export default function MyDreams({ initialSection, profile, guest, onBack, onSig
                     )
                   ) : (
                     <div className="owned-actions">
+                      <HaemongButton dream={d} className="btn" label="🔮 AI 해몽" />
                       {!d.review && (
                         <button className="btn" onClick={() => setForm({ id: d.id, kind: 'review' })}>
                           ✍️ 후기 쓰기{!guest && <small>+50만</small>}

@@ -6,6 +6,7 @@ import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { Dream, Profile } from '../lib/types';
 import { Burst, CloseIcon } from './Backdrops';
+import HaemongButton from './HaemongButton';
 
 type Step = 'contract' | 'stamp' | 'loading' | 'won';
 const STAMP_MS = 950;
@@ -174,6 +175,7 @@ export default function BuyModal({ dream, profile, onClose, onBought, onStale }:
                 <div style={{ width: `${luckShown}%` }} />
               </div>
             </div>
+            <HaemongButton dream={dream} className="wide" label="🔮 AI에게 진짜 해몽 받아보기 (무료)" />
             <button className="btn btn-lav btn-block" onClick={finish}>
               🫙 꿈 보관함에 넣기
             </button>

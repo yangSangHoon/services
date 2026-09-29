@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchMarket } from '../lib/api';
-import { KIND_KEYS, KINDS } from '../lib/dreamMeta';
+import { KIND_KEYS, kindMeta, KINDS } from '../lib/dreamMeta';
 import { friendlyError } from '../lib/format';
 import { onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
@@ -22,7 +22,7 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [vanishing, setVanishing] = useState<Set<string>>(new Set());
-  const [kind, setKind] = useState<DreamKind | 'all'>('all');
+  const [kind, setKind] = useState<DreamKind | 'none' | 'all'>('all');
   const [sort, setSort] = useState<Sort>('new');
   const [buying, setBuying] = useState<Dream | null>(null);
 
@@ -70,7 +70,7 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   );
 
   const visible = useMemo(() => {
-    const list = kind === 'all' ? dreams : dreams.filter((d) => d.kind === kind);
+    const list = kind === 'all' ? dreams : dreams.filter((d) => (d.kind ?? 'none') === kind);
     if (sort === 'cheap') return [...list].sort((a, b) => a.price - b.price);
     if (sort === 'pricey') return [...list].sort((a, b) => b.price - a.price);
     return list;
@@ -94,6 +94,9 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
               {KINDS[k].emoji} {KINDS[k].label}
             </button>
           ))}
+          <button className={kind === 'none' ? 'chip active' : 'chip'} onClick={() => setKind('none')}>
+            {kindMeta(null).emoji} 기타
+          </button>
         </div>
         <div className="market-actions">
           <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="정렬">

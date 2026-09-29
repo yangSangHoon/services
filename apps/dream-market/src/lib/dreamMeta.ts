@@ -12,6 +12,11 @@ export const KINDS: Record<DreamKind, { emoji: string; label: string; hint: stri
 
 export const KIND_KEYS = Object.keys(KINDS) as DreamKind[];
 
+const NO_KIND = { emoji: '💭', label: '기타 꿈', hint: '어디에도 속하지 않는 꿈' };
+
+/** 종류를 고르지 않은 꿈은 '기타 꿈' */
+export const kindMeta = (kind: DreamKind | null) => (kind ? KINDS[kind] : NO_KIND);
+
 export const HONESTY: Record<Honesty, { emoji: string; label: string }> = {
   real: { emoji: '😇', label: '진짜 꿨어요' },
   half: { emoji: '🤔', label: '반쯤 진짜' },

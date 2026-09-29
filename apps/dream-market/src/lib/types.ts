@@ -14,7 +14,7 @@ export interface Dream {
   seller_nickname: string;
   title: string;
   teaser: string;
-  kind: DreamKind;
+  kind: DreamKind | null; // null = 종류 없음(기타)
   honesty: Honesty;
   price: number;
   status: 'on_sale' | 'sold';

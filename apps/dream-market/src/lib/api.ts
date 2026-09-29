@@ -39,7 +39,7 @@ export async function sellDream(input: {
   title: string;
   teaser: string;
   content: string;
-  kind: DreamKind;
+  kind: DreamKind | null;
   honesty: Honesty;
   price: number;
 }) {

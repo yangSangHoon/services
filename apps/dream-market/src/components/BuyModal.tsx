@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import { useEffect, useState } from 'react';
 import { buyDream } from '../lib/api';
-import { interpret, KINDS } from '../lib/dreamMeta';
+import { interpret, kindMeta } from '../lib/dreamMeta';
 import { formatCoins, friendlyError, isGoneError } from '../lib/format';
 import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
@@ -23,7 +23,7 @@ export default function BuyModal({ dream, profile, guest, onClose, onBought, onS
   const [agreed, setAgreed] = useState(false);
   const [content, setContent] = useState('');
   const typed = useTypewriter(content);
-  const kind = KINDS[dream.kind];
+  const kind = kindMeta(dream.kind);
   const free = dream.price === 0;
   const canAfford = profile.coins >= dream.price;
   const { fortune, luck } = interpret(dream.id);

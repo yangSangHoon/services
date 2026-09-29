@@ -10,7 +10,7 @@ const PRICE_STEPS = [1_000, 10_000, 100_000, 1_000_000, 10_000_000];
 const MAX_PRICE = 1_000_000_000_000;
 
 export default function SellModal({ guest, onClose }: { guest: boolean; onClose: () => void }) {
-  const [kind, setKind] = useState<DreamKind>('dragon');
+  const [kind, setKind] = useState<DreamKind | null>(null);
   const [honesty, setHonesty] = useState<Honesty>('real');
   const [title, setTitle] = useState('');
   const [teaser, setTeaser] = useState('');
@@ -38,18 +38,18 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
   return (
     <div className="overlay" onClick={onClose}>
       <form className="modal sell" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <p className="eyebrow">✨ 꿈 팔기</p>
-        <h2>어젯밤 무슨 꿈 꿨어요?</h2>
+        <p className="eyebrow">{guest ? '🎁 꿈 나눔' : '✨ 꿈 팔기'}</p>
+        <h2>{guest ? '어젯밤 꿈, 나눠볼까요?' : '어젯밤 무슨 꿈 꿨어요?'}</h2>
 
         <fieldset>
-          <legend>꿈 종류</legend>
+          <legend>꿈 종류 (선택)</legend>
           <div className="kind-grid">
             {KIND_KEYS.map((k) => (
               <button
                 type="button"
                 key={k}
                 className={`kind-option ${kind === k ? 'active' : ''}`}
-                onClick={() => setKind(k)}
+                onClick={() => setKind((cur) => (cur === k ? null : k))}
                 title={KINDS[k].hint}
               >
                 <span>{KINDS[k].emoji}</span>

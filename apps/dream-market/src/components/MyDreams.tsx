@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { signOut } from '@lab/core';
 import { fetchMyDreams, withdrawDream } from '../lib/api';
-import { interpret, KINDS } from '../lib/dreamMeta';
+import { interpret, kindMeta } from '../lib/dreamMeta';
 import { formatCoins, formatPrice, friendlyError, timeAgo } from '../lib/format';
 import { announce, onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
@@ -81,7 +81,7 @@ export default function MyDreams({ profile, guest }: { profile: Profile; guest: 
           {list.map((d) => (
             <li key={d.id} className="owned">
               <div className="owned-head">
-                <span className="kind-emoji">{KINDS[d.kind].emoji}</span>
+                <span className="kind-emoji">{kindMeta(d.kind).emoji}</span>
                 <div>
                   <h3>{d.title}</h3>
                   <p className="muted small">

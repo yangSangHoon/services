@@ -1,4 +1,4 @@
-import { HONESTY, KINDS } from '../lib/dreamMeta';
+import { HONESTY, kindMeta } from '../lib/dreamMeta';
 import { formatPrice, timeAgo } from '../lib/format';
 import type { Dream } from '../lib/types';
 
@@ -11,17 +11,17 @@ interface Props {
 }
 
 export default function DreamCard({ dream, index, isMine, vanishing, onBuy }: Props) {
-  const kind = KINDS[dream.kind];
+  const kind = kindMeta(dream.kind);
   const honesty = HONESTY[dream.honesty];
   return (
     <article
-      className={`dream-card kind-${dream.kind} ${vanishing ? 'vanish' : ''}`}
+      className={`dream-card kind-${dream.kind ?? 'none'} ${vanishing ? 'vanish' : ''}`}
       style={{ animationDelay: `${(index % 6) * -0.7}s` }}
     >
       <div className="card-top">
         <span className="kind-emoji">{kind.emoji}</span>
         <div className="badges">
-          <span className="badge">{kind.label}</span>
+          {dream.kind && <span className="badge">{kind.label}</span>}
           <span className={`badge honesty-${dream.honesty}`}>
             {honesty.emoji} {honesty.label}
           </span>

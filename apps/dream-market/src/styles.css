@@ -538,3 +538,16 @@ span.avatar { cursor: default; }
 .user-head p { margin: 0; }
 .who-link { border: 0; background: none; padding: 0; font: inherit; color: var(--dm-lav-deep); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--dm-lav); }
 .who-link:hover { color: var(--dm-pink-deep); }
+
+/* 검색창을 '아무 꿈 뽑기' 왼쪽에 좁게 */
+.head-actions { display: flex; align-items: center; gap: 8px; }
+.head-actions .nick-search { width: 220px; margin: 0; }
+.head-actions .nick-search input { height: 44px; font-size: 14px; }
+.head-actions .nick-results { left: auto; right: 0; width: max(100%, 260px); }
+@media (max-width: 560px) {
+  .head-actions { width: 100%; }
+  .head-actions .nick-search { flex: 1; width: auto; min-width: 0; }
+  .head-actions .nick-results { left: 0; right: auto; }
+}
+.filter-row .sort { margin-left: auto; }
+.head-actions .check { height: 44px; padding: 0 16px 0 10px; }

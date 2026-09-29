@@ -152,13 +152,14 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
     }
   };
 
-  const drawRandom = () => {
-    const pool = onSale.filter((d) => d.seller_id !== profile.id && (!guest || d.price === 0));
-    if (!pool.length) return toast('뽑을 꿈이 없어요 😴');
-    const d = pool[Math.floor(Math.random() * pool.length)];
-    setHighlight(d.id);
-    setTimeout(() => open(d), 900);
-  };
+
+  const onlySaleToggle = (
+    <label className={`check ${onlyOnSale ? 'on' : ''}`}>
+      <input type="checkbox" checked={onlyOnSale} onChange={(e) => toggleOnlyOnSale(e.target.checked)} />
+      <span className="box">{onlyOnSale ? '✓' : ''}</span>
+      안팔린 꿈만 보기
+    </label>
+  );
 
   return (
     <main className="content">
@@ -187,20 +188,16 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
                 판매 중인 꿈 <em>{onSale.length}</em>개
               </h1>
             </div>
-            <button className="btn btn-gacha" onClick={drawRandom}>
-              🎲 아무 꿈 뽑기
-            </button>
+            <div className="head-actions">
+              <NicknameSearch onPick={onUser} />
+              {onlySaleToggle}
+            </div>
           </div>
-          <NicknameSearch onPick={onUser} />
         </>
       )}
 
       <div className="filter-row">
-        <label className={`check ${onlyOnSale ? 'on' : ''}`}>
-          <input type="checkbox" checked={onlyOnSale} onChange={(e) => toggleOnlyOnSale(e.target.checked)} />
-          <span className="box">{onlyOnSale ? '✓' : ''}</span>
-          안팔린 꿈만 보기
-        </label>
+        {sellerId && onlySaleToggle}
         <select className="sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="정렬">
           <option value="new">🕐 최신순</option>
           <option value="cheap">🪙 싼 꿈부터</option>

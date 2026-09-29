@@ -429,3 +429,15 @@ button.card-content small { font-size: 12px; color: var(--dm-lav-deep); font-fam
 .celebrate .t { position: relative; font-family: var(--dm-font-display); font-size: 30px; color: #fff; text-shadow: 0 3px 0 rgba(111, 91, 214, 0.35); animation: dcCountIn 0.5s 0.1s ease-out both; }
 .celebrate .s { position: relative; font-size: 14px; animation: dcFadeUp 0.5s 0.25s ease-out both; }
 .won .fortune, .won .luck, .won .btn { animation: dcFadeUp 0.5s ease-out both; }
+
+/* ─── 팔린 꿈 (흐리게) · 안팔린 꿈만 보기 */
+.card.sold { opacity: 0.55; filter: saturate(0.4); animation: none; box-shadow: var(--dm-shadow-sm); transition: opacity 0.6s, filter 0.6s; }
+.card-sealed { margin: 0; margin-top: auto; padding: 12px 14px; border-radius: 16px; font-size: 13px; color: var(--dm-ink-2); background: repeating-linear-gradient(-45deg, #f6f1ff 0 10px, #efe8ff 10px 20px); border: 1.5px dashed var(--dm-lav); }
+.buy-sold { height: 40px; padding: 0 14px; border-radius: 999px; background: var(--dm-lav-50); font-family: var(--dm-font-display); font-size: 14px; color: var(--dm-ink-2); white-space: nowrap; display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis; }
+.filter-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.check { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 8px; border-radius: 999px; background: #fff; border: 1.5px solid var(--dm-lav); font-family: var(--dm-font-display); font-size: 14px; cursor: pointer; user-select: none; white-space: nowrap; }
+.check.on { background: var(--dm-lav-50); border-color: var(--dm-lav-deep); }
+.check input { position: absolute; opacity: 0; width: 0; height: 0; }
+.check .box { width: 20px; height: 20px; border-radius: 7px; border: 2px solid var(--dm-lav-deep); display: grid; place-items: center; background: #fff; color: #fff; font-size: 13px; }
+.check.on .box { background: var(--dm-lav-deep); }
+.check:has(input:focus-visible) { outline: 2px solid var(--dm-lav-deep); outline-offset: 2px; }

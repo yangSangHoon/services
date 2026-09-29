@@ -10,6 +10,8 @@ interface Props {
   isMine: boolean;
   guest: boolean;
   vanishing: boolean;
+  /** 방금 팔려서 방울·말풍선 연출 중 */
+  poofing: boolean;
   fresh: boolean;
   highlighted: boolean;
   onBuy: (d: Dream) => void;
@@ -29,16 +31,17 @@ const BUBBLES = Array.from({ length: 22 }, (_, i) => {
   } as CSSProperties;
 });
 
-export default function DreamCard({ dream, index, isMine, guest, vanishing, fresh, highlighted, onBuy }: Props) {
+export default function DreamCard({ dream, index, isMine, guest, vanishing, poofing, fresh, highlighted, onBuy }: Props) {
   const [open, setOpen] = useState(false);
   const [poof] = useState(() => POOFS[Math.floor(Math.random() * POOFS.length)]);
   const honesty = HONESTY[dream.honesty];
   const free = dream.price === 0;
+  const sold = dream.status === 'sold';
   const price = formatCoins(dream.price);
 
   return (
     <article className={`cell ${fresh ? 'fresh' : ''}`}>
-      <div className={`card ${vanishing ? 'vanish' : highlighted ? 'hi' : ''}`}>
+      <div className={`card ${vanishing ? 'vanish' : sold ? 'sold' : highlighted ? 'hi' : ''}`}>
         <div className="card-top">
           <span className="badge" style={{ background: honesty.tint, animationDelay: `${(index % 5) * 0.7}s` }}>
             {honesty.emoji} {honesty.label}
@@ -48,7 +51,9 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, fres
           <h3>{dream.title}</h3>
           {dream.teaser && <p className="teaser">“{dream.teaser}”</p>}
         </div>
-        {dream.content && (
+        {sold ? (
+          <p className="card-sealed">🔒 팔린 꿈이라 내용은 가져간 사람만 볼 수 있어요</p>
+        ) : dream.content && (
           <button className={`card-content ${open ? 'open' : ''}`} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
             <span>{dream.content}</span>
             <small>{open ? '접기 ▴' : '펼쳐 읽기 ▾'}</small>
@@ -60,7 +65,9 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, fres
             <br />
             <span>{timeAgo(dream.created_at)}</span>
           </span>
-          {isMine ? (
+          {sold ? (
+            <span className="buy-sold">💨 {dream.buyer_nickname ?? '누군가'}님이 가져감</span>
+          ) : isMine ? (
             <span className="buy-mine">내 꿈 · {free ? '무료' : price}</span>
           ) : free ? (
             <button className="btn buy buy-free" disabled={vanishing} onClick={() => onBuy(dream)}>
@@ -78,7 +85,7 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, fres
           )}
         </div>
       </div>
-      {vanishing && (
+      {(vanishing || poofing) && (
         <div className="poof-layer">
           {BUBBLES.map((style, i) => (
             <i key={i} style={style} />

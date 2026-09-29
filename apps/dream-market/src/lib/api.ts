@@ -36,7 +36,6 @@ export async function fetchMarket() {
   const { data, error } = await supabase
     .from(T.dreams)
     .select('*, dream_market_contents(content)')
-    .eq('status', 'on_sale')
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) throw error;

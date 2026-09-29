@@ -16,9 +16,11 @@ interface Props {
   profile: Profile;
   onClose: () => void;
   onBought: (coins: number) => void;
+  /** 이미 팔렸거나 거둬진 꿈이었을 때 목록 새로고침 */
+  onStale: () => void;
 }
 
-export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
+export default function BuyModal({ dream, profile, onClose, onBought, onStale }: Props) {
   const [step, setStep] = useState<Step>('contract');
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
@@ -47,7 +49,7 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
       countLuck();
     } catch (err) {
       toast(friendlyError(err), 'error');
-      if (isGoneError(err)) announce({ type: 'withdrawn', dreamId: dream.id });
+      if (isGoneError(err)) onStale();
       onClose();
     }
   };
@@ -120,7 +122,7 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
             <button className="btn btn-butter btn-block" onClick={buy} disabled={busy}>
               {free ? '🎁 무료로 받기' : '🖋️ 도장 찍고 사기'}
             </button>
-            <p className="foot-note">산 꿈은 시장에서 사라지고 내 보관함으로 와요.</p>
+            <p className="foot-note">산 꿈은 시장에 '팔림'으로 남고, 내용은 내 보관함에서만 볼 수 있어요.</p>
           </>
         )}
 

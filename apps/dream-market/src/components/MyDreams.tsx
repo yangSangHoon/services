@@ -157,7 +157,7 @@ export default function MyDreams({ initialSection, profile, guest, onBack, onSig
         ))}
       </div>
 
-      <div className="owned-list">
+      <div className={`owned-list ${section === 'bought' ? 'as-cards' : ''}`}>
         {dreams === null ? (
           <div className="empty">
             <div className="emoji">💤</div>

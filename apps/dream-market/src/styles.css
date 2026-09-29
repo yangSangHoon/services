@@ -251,6 +251,7 @@ textarea.input { height: auto; min-height: 110px; padding: 12px 14px; line-heigh
 .join-banner .s { margin: 0; font-size: 13px; }
 .join-banner .btn { align-self: flex-start; height: 44px; padding: 0 18px; font-size: 15px; box-shadow: 0 4px 0 var(--dm-butter-deep); }
 .owned-list { display: flex; flex-direction: column; gap: 12px; }
+.owned-list.as-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
 .owned { padding: 16px; border-radius: 22px; background: rgba(255, 255, 255, 0.9); box-shadow: var(--dm-shadow-sm); display: flex; flex-direction: column; gap: 12px; animation: dcDrop 0.4s ease-out both; }
 .owned-head { display: flex; align-items: center; gap: 12px; }
 .owned-head > div { flex: 1; min-width: 0; }
@@ -552,16 +553,30 @@ span.avatar { cursor: default; }
 .filter-row .sort { margin-left: auto; }
 .head-actions .check { height: 44px; padding: 0 16px 0 10px; }
 
-/* ─── 내가 산 꿈(보관함 화면 전용): 연한 금빛 테두리 + 은은하게 도는 빛 */
+/* ─── 내가 산 꿈(보관함 화면 전용): 연한 금빛 테두리 + 은은하게 한 바퀴 도는 빛 */
 @property --dm-spin { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 .gold-frame { position: relative; isolation: isolate; }
+/* 바닥에 깔리는 연한 금빛 테두리 (정적) */
 .gold-frame::before {
   content: ''; position: absolute; inset: -1.5px; z-index: 1; border-radius: inherit; padding: 1.5px; pointer-events: none; opacity: 0.75;
-  background: conic-gradient(from var(--dm-spin), #f3e2a6, #f7e9b8 20%, #fffaf0 30%, #f7e9b8 40%, #efdc9c 60%, #f7e9b8 80%, #f3e2a6);
+  background: linear-gradient(160deg, #f3e2a6, #f7e9b8 45%, #efdc9c);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: dcSpin 7s linear infinite;
+}
+/* 위에서 한 바퀴 도는 은은한 하이라이트 (좁은 흰빛 대부분 투명) */
+.gold-frame::after {
+  content: ''; position: absolute; inset: -1.5px; z-index: 2; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--dm-spin),
+    transparent 0deg, transparent 280deg,
+    rgba(255, 248, 210, 0.5) 320deg,
+    rgba(255, 253, 235, 0.95) 340deg,
+    rgba(255, 248, 210, 0.5) 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: dcSpin 6s linear infinite;
+  mix-blend-mode: screen;
 }
 .owned.gold-frame { background: linear-gradient(165deg, #fffefa, #fffbef); box-shadow: 0 6px 20px rgba(230, 200, 120, 0.16); }
 @keyframes dcSpin { to { --dm-spin: 360deg; } }

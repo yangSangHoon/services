@@ -48,9 +48,7 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, poof
           </span>
         </div>
         <h3>{dream.title}</h3>
-        {sold ? (
-          <p className="card-sealed">🔒 팔린 꿈이라 내용은 가져간 사람만 볼 수 있어요</p>
-        ) : dream.content && (
+        {dream.content && (
           <button className={`card-content ${open ? 'open' : ''}`} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
             <span>{dream.content}</span>
             <small>{open ? '접기 ▴' : '펼쳐 읽기 ▾'}</small>

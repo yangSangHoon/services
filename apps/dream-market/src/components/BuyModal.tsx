@@ -122,7 +122,7 @@ export default function BuyModal({ dream, profile, onClose, onBought, onStale }:
             <button className="btn btn-butter btn-block" onClick={buy} disabled={busy}>
               {free ? '🎁 무료로 받기' : '🖋️ 도장 찍고 사기'}
             </button>
-            <p className="foot-note">산 꿈은 시장에 '팔림'으로 남고, 내용은 내 보관함에서만 볼 수 있어요.</p>
+            <p className="foot-note">산 꿈은 시장에 '팔림'으로 남고, 내 보관함에도 담겨요.</p>
           </>
         )}
 

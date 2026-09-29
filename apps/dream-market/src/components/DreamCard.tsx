@@ -17,6 +17,8 @@ interface Props {
   myVote?: Verdict;
   onBuy: (d: Dream) => void;
   onVote: (d: Dream, v: Verdict) => void;
+  /** 판매자 닉네임을 누르면 그 사람의 꿈 모아보기 */
+  onUser?: (userId: string) => void;
 }
 
 const POOFS = ['뿅! 증발', '낚아챔!', '슝~ 사라짐'];
@@ -33,7 +35,7 @@ const BUBBLES = Array.from({ length: 22 }, (_, i) => {
   } as CSSProperties;
 });
 
-export default function DreamCard({ dream, index, isMine, guest, vanishing, poofing, fresh, highlighted, myVote, onBuy, onVote }: Props) {
+export default function DreamCard({ dream, index, isMine, guest, vanishing, poofing, fresh, highlighted, myVote, onBuy, onVote, onUser }: Props) {
   const [open, setOpen] = useState(false);
   const [poof] = useState(() => POOFS[Math.floor(Math.random() * POOFS.length)]);
   const honesty = HONESTY[dream.honesty];
@@ -84,7 +86,13 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, poof
         </div>
         <div className="card-foot">
           <span className="who">
-            {dream.seller_nickname}
+            {onUser ? (
+              <button className="who-link" onClick={() => onUser(dream.seller_id)}>
+                {dream.seller_nickname}
+              </button>
+            ) : (
+              dream.seller_nickname
+            )}
             {dream.generation > 1 && dream.original_seller_nickname && ` · 원조 ${dream.original_seller_nickname}`}
             <br />
             <span>{timeAgo(dream.created_at)}</span>

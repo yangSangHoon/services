@@ -14,6 +14,9 @@ import { connectMarket, onMarket } from './lib/realtime';
 import { toast } from './lib/toast';
 import type { Profile } from './lib/types';
 
+/** #u/<id> = 그 사람의 꿈 모아보기 (링크 공유·뒤로가기 가능) */
+const readUserHash = () => location.hash.match(/^#u\/([0-9a-f-]{36})$/)?.[1] ?? null;
+
 export default function App() {
   return (
     <>
@@ -31,6 +34,28 @@ function DreamApp() {
   const [selling, setSelling] = useState(false);
   const [signingUp, setSigningUp] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
+  const [userPage, setUserPage] = useState<string | null>(readUserHash);
+
+  useEffect(() => {
+    const sync = () => setUserPage(readUserHash());
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+
+  const openUser = (id: string) => {
+    location.hash = `u/${id}`;
+    window.scrollTo(0, 0);
+  };
+  const closeUser = () => {
+    if (!userPage) return;
+    history.pushState(null, '', location.pathname + location.search);
+    setUserPage(null);
+  };
+  const navigate = (v: View) => {
+    closeUser();
+    setView(v);
+    window.scrollTo(0, 0);
+  };
 
   const guest = isGuest(session);
   const userId = session?.user.id;
@@ -95,16 +120,27 @@ function DreamApp() {
   return (
     <div className="app">
       <AppBackdrop />
-      <Header profile={profile} guest={guest} onNavigate={setView} onSignup={openSignup} />
-      {view === 'market' ? (
-        <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} />
+      <Header profile={profile} guest={guest} onNavigate={navigate} onSignup={openSignup} />
+      {userPage ? (
+        <Market
+          key={userPage}
+          sellerId={userPage}
+          onBack={closeUser}
+          profile={profile}
+          guest={guest}
+          onCoins={setCoins}
+          onSignup={openSignup}
+          onUser={openUser}
+        />
+      ) : view === 'market' ? (
+        <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} onUser={openUser} />
       ) : (
         <MyDreams
           key={view}
           initialSection={view === 'bought' ? 'bought' : 'selling'}
           profile={profile}
           guest={guest}
-          onBack={() => setView('market')}
+          onBack={() => navigate('market')}
           onSignup={openSignup}
           onRenamed={setProfile}
           onCoins={setCoins}

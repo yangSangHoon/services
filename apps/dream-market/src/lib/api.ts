@@ -26,6 +26,20 @@ export async function fetchProfile(userId: string) {
   return data as Profile | null;
 }
 
+export async function fetchPublicProfile(userId: string) {
+  const { data, error } = await supabase.from(T.profiles).select('id, nickname, created_at').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return data as { id: string; nickname: string; created_at: string } | null;
+}
+
+/** 닉네임 부분 검색 (최대 8명) */
+export async function searchNicknames(q: string) {
+  const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const { data, error } = await supabase.from(T.profiles).select('id, nickname').ilike('nickname', pattern).order('nickname').limit(8);
+  if (error) throw error;
+  return data as { id: string; nickname: string }[];
+}
+
 export async function joinDreamWorld(nickname: string) {
   const { data, error } = await supabase.rpc(fn('join'), { p_nickname: nickname });
   if (error) throw error;
@@ -44,12 +58,11 @@ export async function claimWelcomeBonus() {
   return data as number;
 }
 
-export async function fetchMarket() {
-  const { data, error } = await supabase
-    .from(T.dreams)
-    .select(DREAM_SELECT)
-    .order('created_at', { ascending: false })
-    .limit(200);
+/** 시장 목록. sellerId가 있으면 그 사람이 올린 꿈만 */
+export async function fetchMarket(sellerId?: string) {
+  let query = supabase.from(T.dreams).select(DREAM_SELECT);
+  if (sellerId) query = query.eq('seller_id', sellerId);
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(200);
   if (error) throw error;
   return (data as Row[]).map(toDream);
 }

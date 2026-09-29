@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchMarket, fetchMyVotes, voteDream } from '../lib/api';
+import { fetchMarket, fetchMyVotes, fetchPublicProfile, voteDream } from '../lib/api';
 import { friendlyError, rewardMessage } from '../lib/format';
 import { onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { Dream, Profile, Verdict } from '../lib/types';
 import BuyModal from './BuyModal';
 import DreamCard from './DreamCard';
+import NicknameSearch from './NicknameSearch';
 
 type Sort = 'new' | 'cheap' | 'pricey';
 const VANISH_MS = 1350;
@@ -25,9 +26,14 @@ interface Props {
   guest: boolean;
   onCoins: (coins: number) => void;
   onSignup: () => void;
+  /** 닉네임을 누르거나 검색해서 그 사람의 꿈 모아보기로 */
+  onUser: (userId: string) => void;
+  /** 있으면 이 사람이 올린 꿈만 모아 보는 화면 */
+  sellerId?: string;
+  onBack?: () => void;
 }
 
-export default function Market({ profile, guest, onCoins, onSignup }: Props) {
+export default function Market({ profile, guest, onCoins, onSignup, onUser, sellerId, onBack }: Props) {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [vanishing, setVanishing] = useState<Set<string>>(new Set());
@@ -38,10 +44,11 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [buying, setBuying] = useState<Dream | null>(null);
   const [myVotes, setMyVotes] = useState<Map<string, Verdict>>(new Map());
+  const [seller, setSeller] = useState<{ nickname: string; created_at: string } | null | undefined>(undefined);
 
   const load = useCallback(async () => {
     try {
-      const [list, votes] = await Promise.all([fetchMarket(), fetchMyVotes(profile.id)]);
+      const [list, votes] = await Promise.all([fetchMarket(sellerId), fetchMyVotes(profile.id)]);
       setDreams(list);
       setMyVotes(votes);
     } catch (err) {
@@ -49,7 +56,11 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [profile.id]);
+  }, [profile.id, sellerId]);
+
+  useEffect(() => {
+    if (sellerId) fetchPublicProfile(sellerId).then(setSeller, () => setSeller(null));
+  }, [sellerId]);
 
   const without = (set: Set<string>, id: string) => {
     const next = new Set(set);
@@ -84,6 +95,7 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
     () =>
       onMarket((e) => {
         if (e.type === 'listed') {
+          if (sellerId && e.dream.seller_id !== sellerId) return;
           setDreams((ds) => (ds.some((d) => d.id === e.dream.id) ? ds : [e.dream, ...ds]));
           setFresh((s) => new Set(s).add(e.dream.id));
           if (e.dream.seller_id !== profile.id) toast(`${e.dream.seller_nickname}님이 새 꿈을 올렸어요 ✨`);
@@ -94,7 +106,7 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
           vanish(e.dreamId);
         }
       }),
-    [vanish, markSold, profile.id, profile.nickname],
+    [vanish, markSold, profile.id, profile.nickname, sellerId],
   );
 
   const toggleOnlyOnSale = (v: boolean) => {
@@ -150,17 +162,38 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
 
   return (
     <main className="content">
-      <div className="market-head">
-        <div>
-          <div className="kicker">✦ 오늘 밤 올라온 꿈</div>
-          <h1>
-            판매 중인 꿈 <em>{onSale.length}</em>개
-          </h1>
-        </div>
-        <button className="btn btn-gacha" onClick={drawRandom}>
-          🎲 아무 꿈 뽑기
-        </button>
-      </div>
+      {sellerId ? (
+        <>
+          <button className="back-link" onClick={onBack}>
+            ← 꿈 시장으로
+          </button>
+          <div className="user-head">
+            <span className="avatar lg">{seller ? Array.from(seller.nickname)[0] : '💭'}</span>
+            <div>
+              <div className="kicker">✦ 꿈쟁이 {sellerId === profile.id && '(나)'}</div>
+              <h1>{seller === undefined ? '…' : (seller?.nickname ?? '사라진 꿈쟁이')}</h1>
+              <p className="muted small">
+                올린 꿈 {dreams.length}개 · 판매 중 {onSale.length}개 · 팔린 꿈 {dreams.filter((d) => d.status === 'sold').length}개
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="market-head">
+            <div>
+              <div className="kicker">✦ 오늘 밤 올라온 꿈</div>
+              <h1>
+                판매 중인 꿈 <em>{onSale.length}</em>개
+              </h1>
+            </div>
+            <button className="btn btn-gacha" onClick={drawRandom}>
+              🎲 아무 꿈 뽑기
+            </button>
+          </div>
+          <NicknameSearch onPick={onUser} />
+        </>
+      )}
 
       <div className="filter-row">
         <label className={`check ${onlyOnSale ? 'on' : ''}`}>
@@ -183,8 +216,10 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
       ) : visible.length === 0 ? (
         <div className="empty">
           <div className="emoji">🌫️</div>
-          <p className="title">{onlyOnSale && dreams.length ? '안팔린 꿈이 없어요' : '시장에 남은 꿈이 없어요'}</p>
-          <p className="sub">오늘 밤 누군가 꾸면 다시 올라와요. 먼저 하나 올려볼까요?</p>
+          <p className="title">
+            {sellerId ? '아직 올린 꿈이 없어요' : onlyOnSale && dreams.length ? '안팔린 꿈이 없어요' : '시장에 남은 꿈이 없어요'}
+          </p>
+          <p className="sub">{sellerId ? '오늘 밤엔 꿈을 꾸려나 봐요 💤' : '오늘 밤 누군가 꾸면 다시 올라와요. 먼저 하나 올려볼까요?'}</p>
         </div>
       ) : (
         <div className="grid">
@@ -202,6 +237,7 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
               myVote={myVotes.get(d.id)}
               onBuy={open}
               onVote={vote}
+              onUser={sellerId ? undefined : onUser}
             />
           ))}
         </div>

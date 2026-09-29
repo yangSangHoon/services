@@ -1,10 +1,10 @@
 import { isConfigured, isGuest, useSession } from '@lab/core';
 import { useCallback, useEffect, useState } from 'react';
-import { AuthScreen, NicknameStep, SignupForm } from './components/Auth';
+import { AuthPage, AuthScreen, NickPage, type AuthMode } from './components/Auth';
+import { AppBackdrop } from './components/Backdrops';
 import Header, { type Tab } from './components/Header';
 import Market from './components/Market';
 import MyDreams from './components/MyDreams';
-import NightSky from './components/NightSky';
 import SellModal from './components/SellModal';
 import Toaster from './components/Toaster';
 import WelcomeBonus from './components/WelcomeBonus';
@@ -17,7 +17,6 @@ import type { Profile } from './lib/types';
 export default function App() {
   return (
     <>
-      <NightSky />
       {isConfigured ? <DreamApp /> : <SetupNeeded />}
       <Toaster />
     </>
@@ -31,6 +30,7 @@ function DreamApp() {
   const [tab, setTab] = useState<Tab>('market');
   const [selling, setSelling] = useState(false);
   const [signingUp, setSigningUp] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>('signup');
 
   const guest = isGuest(session);
   const userId = session?.user.id;
@@ -43,7 +43,7 @@ function DreamApp() {
     (async () => {
       try {
         let p = await fetchProfile(userId);
-        // 이메일 가입 시 적어둔 닉네임으로 자동 입장
+        // 가입/게스트 입장 때 적어둔 닉네임으로 자동 입장
         if (!p && metaNickname) p = await joinDreamWorld(metaNickname);
         if (!cancelled) setProfile(p);
       } catch (err) {
@@ -70,48 +70,54 @@ function DreamApp() {
       if (e.price === 0) {
         toast(`🎁 ${e.buyer}님이 내 꿈 「${e.title}」을(를) 받아갔어요`, 'success');
       } else {
-        toast(`💰 「${e.title}」이(가) 팔렸어요! +${formatCoins(e.price)} 코인`, 'success');
+        toast(`💰 ${e.buyer}님이 내 꿈 「${e.title}」을 샀어요 · +${formatCoins(e.price)}`, 'success');
         refreshProfile();
       }
     });
   }, [profileId, refreshProfile]);
 
   const setCoins = (coins: number) => setProfile((p) => (p ? { ...p, coins } : p));
-  const openSignup = () => setSigningUp(true);
+  const openSignup = () => {
+    setAuthMode('signup');
+    setSigningUp(true);
+  };
 
   if (loading) return <p className="boot">💤</p>;
   if (!session) return <AuthScreen />;
   if (profile === undefined) return <p className="boot">💤</p>;
-  if (profile === null) return <NicknameStep guest={guest} onDone={setProfile} />;
+  if (profile === null)
+    return (
+      <div className="app">
+        <NickPage onSubmit={async (nickname) => setProfile(await joinDreamWorld(nickname))} />
+      </div>
+    );
 
   return (
     <div className="app">
+      <AppBackdrop />
       <Header profile={profile} guest={guest} tab={tab} onTab={setTab} onSignup={openSignup} />
-      <main className="content">
-        {tab === 'market' ? (
-          <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} />
-        ) : (
-          <MyDreams profile={profile} guest={guest} />
-        )}
-      </main>
-      <button className="fab" onClick={() => setSelling(true)}>
-        {guest ? '🎁 꿈 나눔하기' : '✨ 꿈 팔기'}
-      </button>
+      {tab === 'market' ? (
+        <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} />
+      ) : (
+        <MyDreams profile={profile} guest={guest} onSignup={openSignup} />
+      )}
+      {!selling && (
+        <button className="btn fab" onClick={() => setSelling(true)}>
+          {guest ? '🎁 꿈 나눔하기' : '✨ 꿈 팔기'}
+        </button>
+      )}
       {selling && <SellModal guest={guest} onClose={() => setSelling(false)} />}
       {signingUp && (
-        <div className="overlay" onClick={() => setSigningUp(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <p className="eyebrow">🎁 회원가입</p>
-            <h2>가입하면 바로 1억 코인!</h2>
-            <p className="muted small">게스트로 올린 꿈과 닉네임은 그대로 이어져요.</p>
-            <SignupForm onDone={() => setSigningUp(false)} />
-          </div>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, overflowY: 'auto' }}>
+          <AuthPage mode={authMode} onMode={setAuthMode} upgrading={guest} onBack={() => setSigningUp(false)} onDone={() => setSigningUp(false)} />
         </div>
       )}
       {!guest && !profile.bonus_claimed && (
         <WelcomeBonus
-          nickname={profile.nickname}
-          onDone={(coins) => setProfile((p) => (p ? { ...p, coins: coins || p.coins, bonus_claimed: true } : p))}
+          onDone={(coins) => {
+            setProfile((p) => (p ? { ...p, coins: coins || p.coins, bonus_claimed: true } : p));
+            if (coins) toast('🌙 첫 계시 완료! 마음껏 꿈을 사보세요');
+          }}
         />
       )}
     </div>
@@ -120,12 +126,14 @@ function DreamApp() {
 
 function SetupNeeded() {
   return (
-    <main className="onboarding">
-      <div className="moon">🔧</div>
-      <h1 className="brand-title">설정이 필요해요</h1>
-      <p className="tagline">
-        <code>.env</code> 파일에 <code>VITE_SUPABASE_URL</code>과 <code>VITE_SUPABASE_ANON_KEY</code>를 넣어주세요.
-      </p>
+    <main className="page">
+      <div className="page-head">
+        <div className="emoji">🔧</div>
+        <h1>설정이 필요해요</h1>
+        <p>
+          <code>.env</code> 파일에 <code>VITE_SUPABASE_URL</code>과 <code>VITE_SUPABASE_ANON_KEY</code>를 넣어주세요.
+        </p>
+      </div>
     </main>
   );
 }

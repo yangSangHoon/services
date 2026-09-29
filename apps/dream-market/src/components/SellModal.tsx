@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { sellDream } from '../lib/api';
 import { HONESTY, KIND_KEYS, KINDS } from '../lib/dreamMeta';
-import { formatCoins, formatPrice, friendlyError } from '../lib/format';
+import { formatCoins, friendlyError } from '../lib/format';
 import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { DreamKind, Honesty } from '../lib/types';
+import { CloseIcon } from './Backdrops';
 
-const PRICE_STEPS = [1_000, 10_000, 100_000, 1_000_000, 10_000_000];
+const PRICE_STEPS: [string, number][] = [
+  ['+1천', 1_000],
+  ['+1만', 10_000],
+  ['+10만', 100_000],
+  ['+100만', 1_000_000],
+  ['+1000만', 10_000_000],
+];
 const MAX_PRICE = 1_000_000_000_000;
 
 export default function SellModal({ guest, onClose }: { guest: boolean; onClose: () => void }) {
@@ -15,110 +22,123 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
   const [title, setTitle] = useState('');
   const [teaser, setTeaser] = useState('');
   const [content, setContent] = useState('');
-  const [price, setPrice] = useState(guest ? 0 : 10_000);
+  const [price, setPrice] = useState(10_000);
+  const [free, setFree] = useState(guest);
+  const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const valid = title.trim() && content.trim() && price >= 0;
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!valid) return;
+  const submit = async () => {
+    if (!title.trim()) return setError('제목이 있어야 팔 수 있어요.');
+    if (!content.trim()) return setError('꿈 내용이 비어 있어요.');
+    const finalPrice = guest || free ? 0 : price;
+    if (!guest && !free && finalPrice === 0) return setError('가격을 올리거나 🎁 무료로 나눔을 눌러주세요.');
+    setError('');
     setSaving(true);
     try {
-      const dream = await sellDream({ title, teaser, content, kind, honesty, price });
+      const dream = await sellDream({ title, teaser, content, kind, honesty, price: finalPrice });
       announce({ type: 'listed', dream });
-      toast('꿈이 시장에 둥실 떠올랐어요 🫧', 'success');
+      toast('🌙 시장에 올라갔어요!', 'success');
       onClose();
     } catch (err) {
-      toast(friendlyError(err), 'error');
+      setError(friendlyError(err));
       setSaving(false);
     }
   };
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <form className="modal sell" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <p className="eyebrow">{guest ? '🎁 꿈 나눔' : '✨ 꿈 팔기'}</p>
-        <h2>{guest ? '어젯밤 꿈, 나눠볼까요?' : '어젯밤 무슨 꿈 꿨어요?'}</h2>
-
-        <fieldset>
-          <legend>꿈 종류 (선택)</legend>
-          <div className="kind-grid">
-            {KIND_KEYS.map((k) => (
-              <button
-                type="button"
-                key={k}
-                className={`kind-option ${kind === k ? 'active' : ''}`}
-                onClick={() => setKind((cur) => (cur === k ? null : k))}
-                title={KINDS[k].hint}
-              >
-                <span>{KINDS[k].emoji}</span>
-                <small>{KINDS[k].label}</small>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <label className="field">
-          <span>제목 (공개)</span>
-          <input value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="황금 돼지가 내 방에 들어옴" />
-        </label>
-
-        <label className="field">
-          <span>맛보기 한 줄 (공개, 선택)</span>
-          <input value={teaser} maxLength={80} onChange={(e) => setTeaser(e.target.value)} placeholder="근데 그 돼지가 말을 했음…" />
-        </label>
-
-        <label className="field">
-          <span>꿈 내용</span>
-          <textarea
-            value={content}
-            maxLength={2000}
-            rows={4}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="꿈 내용을 최대한 생생하게!"
-          />
-        </label>
-
-        <fieldset>
-          <legend>진실 서약</legend>
-          <div className="segmented">
-            {(Object.keys(HONESTY) as Honesty[]).map((h) => (
-              <button type="button" key={h} className={honesty === h ? 'active' : ''} onClick={() => setHonesty(h)}>
-                {HONESTY[h].emoji} {HONESTY[h].label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>가격</legend>
-          <div className="price-display">{formatPrice(price)}</div>
-          {guest ? (
-            <p className="guest-note">👀 게스트는 코인을 벌 수 없어서 무료 나눔만 가능해요. 가입하면 가격을 매길 수 있어요!</p>
-          ) : (
-          <div className="price-steps">
-            {PRICE_STEPS.map((s) => (
-              <button type="button" key={s} onClick={() => setPrice((p) => Math.min(MAX_PRICE, p + s))}>
-                +{formatCoins(s)}
-              </button>
-            ))}
-            <button type="button" className="reset" onClick={() => setPrice(0)}>
-              🎁 무료로
-            </button>
-          </div>
-          )}
-        </fieldset>
-
-        <div className="modal-actions">
-          <button type="button" className="btn-ghost" onClick={onClose}>
-            취소
-          </button>
-          <button className="btn-primary" disabled={!valid || saving}>
-            {saving ? '포장 중…' : '시장에 내놓기'}
+    <div className="backdrop" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="grabber" />
+        <div className="sheet-head">
+          <h2>{guest ? '🎁 꿈 나눔하기' : '✨ 꿈 팔기'}</h2>
+          <button className="close-btn" onClick={onClose} aria-label="닫기">
+            <CloseIcon />
           </button>
         </div>
-      </form>
+
+        <div>
+          <div className="label-row">
+            꿈 종류 <span className="hint">· 안 고르면 💭기타</span>
+          </div>
+          <div className="pick-grid">
+            {KIND_KEYS.map((k) => (
+              <button
+                key={k}
+                className={`pick ${kind === k ? 'on' : ''}`}
+                style={kind === k ? { background: KINDS[k].tint } : undefined}
+                onClick={() => setKind((cur) => (cur === k ? null : k))}
+              >
+                <span>{KINDS[k].emoji}</span>
+                {KINDS[k].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="field">
+          제목
+          <input className="input" value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="예) 용이 물속에서 나타남" />
+        </label>
+        <label className="field">
+          맛보기 한 줄 <span className="hint">선택</span>
+          <input className="input" value={teaser} maxLength={80} onChange={(e) => setTeaser(e.target.value)} placeholder="예) 근데 그 용이…" />
+        </label>
+        <label className="field">
+          꿈 내용 <span className="hint">시장에서 누구나 읽을 수 있어요</span>
+          <textarea className="input" value={content} maxLength={2000} onChange={(e) => setContent(e.target.value)} placeholder="어젯밤 꿈을 자세히 적어주세요" />
+        </label>
+
+        <div>
+          <div className="label-row">진실 서약</div>
+          <div className="pick-grid three">
+            {(Object.keys(HONESTY) as Honesty[]).map((h) => (
+              <button
+                key={h}
+                className={`pick ${honesty === h ? 'on' : ''}`}
+                style={honesty === h ? { background: HONESTY[h].tint } : undefined}
+                onClick={() => setHonesty(h)}
+              >
+                <span>{HONESTY[h].emoji}</span>
+                {HONESTY[h].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {guest ? (
+          <div className="mint-box">
+            <div className="t">🎁 가격: 무료 나눔</div>
+            <div className="s">게스트는 코인이 없어서 무료로만 나눌 수 있어요. 가입하면 1억 코인을 받고 꿈을 팔 수 있어요.</div>
+          </div>
+        ) : (
+          <div className="price-box">
+            <div className="top">
+              <span>가격</span>
+              <button className={`free-toggle ${free ? 'on' : ''}`} onClick={() => setFree(!free)}>
+                🎁 무료로 나눔
+              </button>
+            </div>
+            <div className="price-val">{free ? '🎁 무료' : `${formatCoins(price)} 코인`}</div>
+            {!free && (
+              <div className="price-chips">
+                {PRICE_STEPS.map(([label, v]) => (
+                  <button key={label} onClick={() => setPrice((p) => Math.min(MAX_PRICE, p + v))}>
+                    {label}
+                  </button>
+                ))}
+                <button className="reset" onClick={() => setPrice(0)}>
+                  초기화
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && <p className="err">{error}</p>}
+        <button className="btn btn-candy btn-block" onClick={submit} disabled={saving}>
+          {saving ? '포장 중…' : '🌙 시장에 올리기'}
+        </button>
+      </div>
     </div>
   );
 }

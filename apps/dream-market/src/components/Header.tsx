@@ -17,25 +17,28 @@ export default function Header({ profile, guest, tab, onTab, onSignup }: Props) 
   return (
     <header className="header">
       <div className="header-top">
-        <div className="brand">🌙 꿈사꿈팔</div>
+        <span className="mini-moon" />
+        <span className="brand">꿈사꿈팔</span>
         {guest ? (
-          <button className="wallet guest" onClick={onSignup}>
-            👀 게스트 · <strong>가입하고 1억 받기</strong>
+          <button className="btn btn-butter btn-join-mini" onClick={onSignup}>
+            🎁 가입하고 1억
           </button>
         ) : (
           <div className="wallet" title={`${profile.coins.toLocaleString('ko-KR')} 코인`}>
-            <span className="coin">🪙</span>
-            <strong>{formatCoins(coins)}</strong>
+            <span className="coin">꿈</span>
+            {formatCoins(coins)}
           </div>
         )}
       </div>
-      <nav className="tabs">
-        <button className={tab === 'market' ? 'active' : ''} onClick={() => onTab('market')}>
-          🛍️ 꿈 시장
-        </button>
-        <button className={tab === 'mine' ? 'active' : ''} onClick={() => onTab('mine')}>
-          🛏️ {profile.nickname}의 꿈
-        </button>
+      <nav>
+        <div className="seg">
+          <button className={tab === 'market' ? 'on' : ''} onClick={() => onTab('market')}>
+            🛍️ 꿈 시장
+          </button>
+          <button className={tab === 'mine' ? 'on' : ''} onClick={() => onTab('mine')}>
+            🛏️ {profile.nickname}의 꿈
+          </button>
+        </div>
       </nav>
     </header>
   );

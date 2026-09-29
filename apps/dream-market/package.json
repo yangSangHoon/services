@@ -13,10 +13,6 @@
     "build": "tsc --noEmit && vite build"
   },
   "dependencies": {
-    "@lab/core": "*",
-    "canvas-confetti": "^1.9.3"
-  },
-  "devDependencies": {
-    "@types/canvas-confetti": "^1.6.4"
+    "@lab/core": "*"
   }
 }

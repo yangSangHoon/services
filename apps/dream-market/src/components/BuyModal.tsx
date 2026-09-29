@@ -1,46 +1,50 @@
-import confetti from 'canvas-confetti';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { buyDream } from '../lib/api';
-import { interpret, kindMeta } from '../lib/dreamMeta';
+import { HONESTY, interpret, kindMeta } from '../lib/dreamMeta';
 import { formatCoins, friendlyError, isGoneError } from '../lib/format';
 import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { Dream, Profile } from '../lib/types';
+import { CloseIcon } from './Backdrops';
 
-type Step = 'contract' | 'buying' | 'reveal';
+type Step = 'contract' | 'stamp' | 'loading' | 'won';
+const STAMP_MS = 950;
+const MIN_TOTAL_MS = 2900; // 도장 + 병 담기 연출이 끝날 때까지는 기다린다
 
 interface Props {
   dream: Dream;
   profile: Profile;
   onClose: () => void;
-  guest: boolean;
   onBought: (coins: number) => void;
-  onSignup: () => void;
 }
 
-export default function BuyModal({ dream, profile, guest, onClose, onBought, onSignup }: Props) {
+export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
   const [step, setStep] = useState<Step>('contract');
   const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState('');
+  const [luckShown, setLuckShown] = useState(0);
+  const timers = useRef<number[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
   const kind = kindMeta(dream.kind);
   const free = dream.price === 0;
-  const canAfford = profile.coins >= dream.price;
+  const after = profile.coins - dream.price;
   const { fortune, luck } = interpret(dream.id);
+  const busy = step === 'stamp' || step === 'loading';
+  const close = () => !busy && onClose();
 
   const buy = async () => {
-    setStep('buying');
+    if (!agreed) return setError('동의 체크가 필요해요. 꿈에도 약관은 있어요.');
+    if (after < 0) return setError('잔고가 부족해요. 꿈을 팔아서 벌어오세요 🥲');
+    setError('');
+    setStep('stamp');
+    timers.current.push(window.setTimeout(() => setStep('loading'), STAMP_MS));
     try {
-      const [result] = await Promise.all([buyDream(dream.id), new Promise((r) => setTimeout(r, 1400))]);
-      setStep('reveal');
+      const [result] = await Promise.all([buyDream(dream.id), new Promise((r) => setTimeout(r, MIN_TOTAL_MS))]);
       onBought(result.coins);
-      announce({
-        type: 'sold',
-        dreamId: dream.id,
-        title: dream.title,
-        sellerId: dream.seller_id,
-        price: dream.price,
-        buyer: profile.nickname,
-      });
-      confetti({ particleCount: 90, spread: 70, origin: { y: 0.4 }, scalar: 0.9 });
+      announce({ type: 'sold', dreamId: dream.id, title: dream.title, sellerId: dream.seller_id, price: dream.price, buyer: profile.nickname });
+      setStep('won');
+      countLuck();
     } catch (err) {
       toast(friendlyError(err), 'error');
       if (isGoneError(err)) announce({ type: 'withdrawn', dreamId: dream.id });
@@ -48,93 +52,132 @@ export default function BuyModal({ dream, profile, guest, onClose, onBought, onS
     }
   };
 
+  const countLuck = () => {
+    let v = 0;
+    const id = window.setInterval(() => {
+      v = Math.min(luck, v + 2);
+      setLuckShown(v);
+      if (v >= luck) clearInterval(id);
+    }, 18);
+    timers.current.push(id);
+  };
+
+  const finish = () => {
+    toast('🫙 꿈 보관함에 담았어요');
+    onClose();
+  };
+
   return (
-    <div className="overlay" onClick={step === 'contract' ? onClose : undefined}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        {step === 'contract' && (
-          <>
-            <p className="eyebrow">{free ? '🎁 무료 나눔 꿈' : '📜 꿈 매매 계약서'}</p>
-            <div className="contract-head">
-              <span className="kind-emoji big">{kind.emoji}</span>
-              <div>
-                <h2>{dream.title}</h2>
-                <p className="muted small">판매자 {dream.seller_nickname}</p>
-              </div>
+    <div className="backdrop" onClick={close}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="grabber" />
+        <div className="sheet-head">
+          <div className="tile tile-md" style={{ background: kind.tint }}>
+            {kind.emoji}
+          </div>
+          <div>
+            <div className="k">
+              {dream.seller_nickname} · {kind.label} · {HONESTY[dream.honesty].emoji}
             </div>
-            {dream.content && <p className="dream-content">{dream.content}</p>}
-            {free ? (
-              <p className="receipt muted small">공짜 꿈이에요. 감사 인사는 마음속으로 🙏</p>
-            ) : (
-            <dl className="receipt">
-              <div>
-                <dt>꿈 가격</dt>
-                <dd>🪙 {formatCoins(dream.price)}</dd>
-              </div>
-              <div>
-                <dt>내 잔고</dt>
-                <dd>🪙 {formatCoins(profile.coins)}</dd>
-              </div>
-              <div className="total">
-                <dt>구매 후</dt>
-                <dd className={canAfford ? '' : 'danger'}>
-                  {canAfford ? `🪙 ${formatCoins(profile.coins - dream.price)}` : '코인 부족 😵'}
-                </dd>
-              </div>
-            </dl>
+            <div className="t">{dream.title}</div>
+          </div>
+          <button className="close-btn" onClick={close} disabled={busy} aria-label="닫기">
+            <CloseIcon />
+          </button>
+        </div>
+
+        {(step === 'contract' || step === 'stamp') && (
+          <>
+            {dream.content && (
+              <p className="dream-box">
+                <span className="k">꿈 내용</span>
+                {dream.content}
+              </p>
             )}
-            {guest && !canAfford && (
-              <p className="guest-note">👀 게스트는 코인이 없어서 무료 꿈만 받을 수 있어요. 가입하면 바로 1억 코인!</p>
-            )}
-            <label className="agree">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-              <span>이 꿈이 지어낸 것일 수 있으며, 환불은 꿈에서만 가능함에 동의합니다.</span>
-            </label>
-            <div className="modal-actions">
-              <button className="btn-ghost" onClick={onClose}>
-                안 살래요
-              </button>
-              {guest && !canAfford ? (
-                <button className="btn-primary" onClick={onSignup}>
-                  🎁 가입하고 1억 받기
-                </button>
-              ) : (
-                <button className="btn-primary" disabled={!agreed || !canAfford} onClick={buy}>
-                  {free ? '무료로 받기' : '꿈 사기'}
-                </button>
+            <div className="contract">
+              <div className="h">📜 꿈 매매 계약서</div>
+              <div className="r">
+                <span>꿈 가격</span>
+                <span>{free ? '무료' : `${formatCoins(dream.price)} 코인`}</span>
+              </div>
+              <div className="r">
+                <span>지금 잔고</span>
+                <span>{formatCoins(profile.coins)} 코인</span>
+              </div>
+              <div className="r total">
+                <span>구매 후 잔고</span>
+                <span className={after < 0 ? 'neg' : ''}>
+                  {after < 0 ? '-' : ''}
+                  {formatCoins(Math.abs(after))} 코인
+                </span>
+              </div>
+              {step === 'stamp' && (
+                <div className="stamp">
+                  <b>계약</b>
+                  {profile.nickname.split(' ').pop()}
+                </div>
               )}
             </div>
+            <button className={`agree ${agreed ? 'on' : ''}`} onClick={() => (setAgreed(!agreed), setError(''))} disabled={busy}>
+              <span className="box">{agreed ? '✓' : ''}</span>
+              환불은 꿈에서만 가능함에 동의합니다
+            </button>
+            {error && <p className="err">{error}</p>}
+            <button className="btn btn-butter btn-block" onClick={buy} disabled={busy}>
+              {free ? '🎁 무료로 받기' : '🖋️ 도장 찍고 사기'}
+            </button>
+            <p className="foot-note">산 꿈은 시장에서 사라지고, 당신만 볼 수 있어요.</p>
           </>
         )}
 
-        {step === 'buying' && (
-          <div className="buying">
-            <div className="bubble-jar">🫙</div>
-            <p>꿈을 병에 옮겨 담는 중…</p>
+        {step === 'loading' && (
+          <div className="jar-step">
+            <div className="jar">
+              <div className="cork" />
+              <div className="neck" />
+              <div className="body">
+                <div className="liquid" />
+                <span className="tw" style={{ left: 30, bottom: 30, fontSize: 14 }}>
+                  ✦
+                </span>
+                <span className="tw" style={{ right: 26, bottom: 60, fontSize: 10, animationDuration: '1.4s', animationDelay: '.3s' }}>
+                  ✦
+                </span>
+              </div>
+            </div>
+            <p style={{ fontFamily: 'var(--dm-font-display)', fontSize: 18 }}>꿈을 병에 옮겨 담는 중…</p>
+            <p className="sub">흘리지 않게 조심조심</p>
           </div>
         )}
 
-        {step === 'reveal' && (
-          <>
-            <p className="eyebrow">🎉 거래 성사!</p>
-            <div className="won">
-              <span className="kind-emoji big">{kind.emoji}</span>
-              <h2>「{dream.title}」은(는) 이제 당신 꿈</h2>
-            </div>
+        {step === 'won' && (
+          <div className="won">
+            {dream.content && (
+              <p className="dream-box">
+                <span className="k">🎉 거래 성사 · 이제 당신의 꿈</span>
+                {dream.content}
+              </p>
+            )}
             <div className="fortune">
+              <span className="i">🔮</span>
               <div>
-                <strong>🔮 오늘의 해몽</strong>
-                <p>{fortune}</p>
-              </div>
-              <div className="luck">
-                <span>행운 지수</span>
-                <strong>{luck}%</strong>
+                <div className="l">오늘의 해몽</div>
+                <div className="v">{fortune}</div>
               </div>
             </div>
-            <p className="muted small center">이 꿈은 이제 당신 것. 시장에서는 사라졌어요 💨</p>
-            <button className="btn-primary btn-lg" onClick={onClose}>
-              보관함에 넣기
+            <div className="luck">
+              <div className="top">
+                <span>🍀 행운 지수</span>
+                <strong>{luckShown}%</strong>
+              </div>
+              <div className="bar">
+                <div style={{ width: `${luckShown}%` }} />
+              </div>
+            </div>
+            <button className="btn btn-lav btn-block" onClick={finish}>
+              🫙 꿈 보관함에 넣기
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

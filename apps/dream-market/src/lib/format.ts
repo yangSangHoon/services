@@ -22,11 +22,6 @@ export function formatCoins(n: number) {
   return parts.join(' ');
 }
 
-/** 0 코인 = 무료 나눔 */
-export function formatPrice(n: number) {
-  return n === 0 ? '🎁 무료' : `🪙 ${formatCoins(n)}`;
-}
-
 export function timeAgo(iso: string) {
   const sec = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (sec < 60) return '방금';

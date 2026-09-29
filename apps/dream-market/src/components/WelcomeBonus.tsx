@@ -1,63 +1,120 @@
-import confetti from 'canvas-confetti';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { claimWelcomeBonus } from '../lib/api';
-import { formatCoins, friendlyError } from '../lib/format';
+import { friendlyError } from '../lib/format';
 import { toast } from '../lib/toast';
-import { useCountUp } from '../lib/useCountUp';
+import { PASTELS, Stars } from './Backdrops';
 
-type Step = 'sealed' | 'opening' | 'opened';
+type Phase = 'idle' | 'burst' | 'done';
+const BONUS = 100_000_000;
+const COUNT_MS = 2600;
 
-export default function WelcomeBonus({ nickname, onDone }: { nickname: string; onDone: (coins: number) => void }) {
-  const [step, setStep] = useState<Step>('sealed');
-  const [coins, setCoins] = useState(0);
-  const shown = useCountUp(coins, 2200);
+/** 첫 계시: 구슬을 누르면 별·방울이 터지고 "꿈" 코인이 쏟아지며 0 → 1억 카운트 */
+export default function WelcomeBonus({ onDone }: { onDone: (coins: number) => void }) {
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [count, setCount] = useState(0);
+  const total = useRef(0);
+  const raf = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
-  const open = async () => {
-    if (step !== 'sealed') return;
-    setStep('opening');
+  const burst = useMemo(() => (phase === 'idle' ? null : makeBurst()), [phase === 'idle']); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tap = async () => {
+    if (phase !== 'idle') return;
+    setPhase('burst');
+    // 카운트는 바로 시작하고, 보상 지급은 뒤에서 확정
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / COUNT_MS);
+      setCount(Math.round((p === 1 ? 1 : 1 - Math.pow(2, -10 * p)) * BONUS));
+      if (p < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
     try {
-      const [total] = await Promise.all([claimWelcomeBonus(), new Promise((r) => setTimeout(r, 1200))]);
-      setStep('opened');
-      setCoins(total);
-      confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
-      setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0 } }), 400);
-      setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1 } }), 700);
+      const [coins] = await Promise.all([claimWelcomeBonus(), new Promise((r) => setTimeout(r, COUNT_MS))]);
+      total.current = coins;
+      setPhase('done');
     } catch (err) {
+      cancelAnimationFrame(raf.current);
       toast(friendlyError(err), 'error');
       onDone(0);
     }
   };
 
   return (
-    <div className="overlay">
-      <div className="modal welcome">
-        {step !== 'opened' ? (
-          <>
-            <p className="eyebrow">🎉 입장 기념 이벤트</p>
-            <h2>
-              {nickname}님께
-              <br />
-              첫 계시가 도착했습니다
-            </h2>
-            <button className={`crystal ${step === 'opening' ? 'crystal-opening' : ''}`} onClick={open}>
-              🔮
-            </button>
-            <p className="muted">{step === 'opening' ? '계시를 해독하는 중…' : '수정구슬을 눌러 계시를 받으세요'}</p>
-          </>
+    <div className="dawn reveal">
+      <Stars />
+      <div className="sky">{burst?.rain}</div>
+      <div className="reveal-inner">
+        <span className="chip-glass" style={{ color: '#fff' }}>
+          ✦ 첫 계시 이벤트
+        </span>
+        <h2>{phase === 'done' ? '계시가 내려왔어요!' : '수정구슬이 당신을\n부르고 있어요'}</h2>
+        <div className="spacer" />
+        <div className="orb-wrap">
+          <div className="burst">{burst?.particles}</div>
+          <button className={`orb ${phase === 'burst' ? 'popped' : phase === 'done' ? 'glow' : ''}`} onClick={tap} aria-label="수정구슬">
+            <span>✨</span>
+          </button>
+          <div className="orb-stand" />
+        </div>
+        {phase === 'idle' ? (
+          <p className="tap-hint">👆 구슬을 톡 눌러보세요</p>
         ) : (
-          <>
-            <p className="eyebrow">✨ 계시 ✨</p>
-            <h2>하늘에서 코인이 쏟아집니다</h2>
-            <div className="bonus-amount">
-              <span className="coin">🪙</span> {formatCoins(shown)}
-            </div>
-            <p className="muted">이 코인으로 남의 꿈을 사보세요. 현실에선 못 쓰는 게 함정.</p>
-            <button className="btn-primary btn-lg" onClick={() => onDone(coins)} disabled={shown < coins}>
-              꿈 쇼핑하러 가기 →
+          <div className="count">
+            <div className="n">{count.toLocaleString('ko-KR')}</div>
+            <div className="u">코인</div>
+          </div>
+        )}
+        <div className="spacer" />
+        {phase === 'done' && (
+          <div className="reveal-done">
+            <p>1억 코인이 입금됐어요. 현실에선 한 푼도 못 써요 😌</p>
+            <button className="btn btn-butter btn-block" onClick={() => onDone(total.current)}>
+              꿈 사러 가기 →
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>
   );
+}
+
+function makeBurst() {
+  const particles = Array.from({ length: 70 }, (_, i) => {
+    const a = Math.random() * Math.PI * 2;
+    const d = 110 + Math.random() * 260;
+    const s = 8 + Math.random() * 14;
+    const star = i % 3 === 0;
+    const style = {
+      left: -s / 2,
+      top: -s / 2,
+      width: s,
+      height: s,
+      borderRadius: star ? 0 : '50%',
+      background: star ? '#fff' : PASTELS[i % PASTELS.length],
+      '--dx': `${Math.cos(a) * d}px`,
+      '--dy': `${Math.sin(a) * d + 40}px`,
+      '--r': `${Math.random() * 540 - 270}deg`,
+      animation: `dcBurst ${1 + Math.random()}s cubic-bezier(.1,.7,.3,1) ${Math.random() * 0.15}s both`,
+    } as CSSProperties;
+    return <i key={i} className={star ? 'sparkle' : ''} style={style} />;
+  });
+  const rings = [0, 1, 2].map((k) => <i key={`r${k}`} className="ring" style={{ animationDelay: `${k * 0.18}s` }} />);
+  const rain = Array.from({ length: 34 }, (_, i) => {
+    const s = 18 + Math.random() * 16;
+    const style = {
+      left: `${Math.random() * 100}%`,
+      width: s,
+      height: s,
+      fontSize: s * 0.45,
+      '--r': `${Math.random() * 720 - 360}deg`,
+      animation: `dcFall ${2 + Math.random() * 1.6}s linear ${Math.random() * 2.2}s both`,
+    } as CSSProperties;
+    return (
+      <span key={i} style={style}>
+        꿈
+      </span>
+    );
+  });
+  return { particles: [...particles, ...rings], rain: <div className="rain">{rain}</div> };
 }

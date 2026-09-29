@@ -25,8 +25,8 @@ export function useSession() {
 }
 
 /** 게스트(익명) 로그인. Supabase > Authentication > Sign In / Providers > Allow anonymous sign-ins 필요 */
-export async function signInAsGuest() {
-  const { data, error } = await supabase.auth.signInAnonymously();
+export async function signInAsGuest(metadata?: Record<string, unknown>) {
+  const { data, error } = await supabase.auth.signInAnonymously({ options: { data: metadata } });
   if (error) throw error;
   return data.session!;
 }

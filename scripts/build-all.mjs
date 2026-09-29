@@ -50,6 +50,12 @@ function renderIndex(apps) {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Idea Lab</title>
+<meta name="description" content="아이디어로 가볍게 만들어 본 서비스 모음" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="ko_KR" />
+<meta property="og:title" content="🧪 Idea Lab" />
+<meta property="og:description" content="아이디어로 가볍게 만들어 본 서비스 모음" />
+<meta property="og:url" content="https://yangsanghoon.github.io/services/" />
 <style>
   :root { --bg:#f6f5f2; --fg:#1d1d1f; --muted:#6b6b70; --card:#fff; --line:#e4e2dd; --accent:#5b4bdb; }
   @media (prefers-color-scheme: dark) { :root { --bg:#111114; --fg:#f2f2f5; --muted:#9a9aa3; --card:#1b1b20; --line:#2a2a31; --accent:#9d92ff; } }

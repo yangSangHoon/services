@@ -40,6 +40,11 @@ const migration = path.join(root, 'supabase', 'migrations', `${ts}_${prefix.slic
 fs.writeFileSync(migration, fill(fs.readFileSync(path.join(root, 'templates', 'migration.sql'), 'utf8')));
 
 execSync('npm install', { cwd: root, stdio: 'inherit' });
+try {
+  execSync(`node scripts/og-image.mjs ${slug}`, { cwd: root, stdio: 'inherit' });
+} catch {
+  console.warn('⚠ 공유 이미지(og.png) 생성 실패 — Chrome 설치 후 npm run og ' + slug);
+}
 
 console.log(`
 ✔ apps/${slug} 생성
@@ -48,6 +53,7 @@ console.log(`
 다음 단계:
   1. 마이그레이션 SQL 작성 후 Supabase에 적용
   2. npm run dev ${slug}
+     (공유 이미지: apps/${slug}/og.html 을 만들어 꾸미고 npm run og ${slug})
   3. push 하면 /${slug}/ 로 배포
 `);
 

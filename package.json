@@ -10,7 +10,8 @@
     "new": "node scripts/new-app.mjs",
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build-all.mjs",
-    "build:app": "node scripts/build-all.mjs --only"
+    "build:app": "node scripts/build-all.mjs --only",
+    "og": "node scripts/og-image.mjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.109.0",

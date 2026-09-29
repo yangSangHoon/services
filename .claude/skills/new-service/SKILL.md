@@ -53,6 +53,12 @@ curl -s "https://sugayrefionpkzkzdgss.supabase.co/rest/v1/<prefix><table>?select
 - 스타일은 `:root` CSS 변수(디자인 토큰)로 정의해서 나중에 디자인 교체가 쉽게. 모바일 폭(좌우 16px)에서 가로 스크롤 없게.
 - 앱 전용 라이브러리는 `npm i <pkg> -w apps/<slug>`.
 
+## 5-1. 공유 미리보기 (카카오톡 · 페이스북)
+
+- 템플릿 `index.html`에 OG 태그(제목·설명·이미지)가 이미 들어 있다. 제목/설명 문구는 서비스에 맞게 다듬는다.
+- 스캐폴딩 때 기본 `public/og.png`(1200×630)가 생성된다. 서비스 분위기에 맞게 `apps/<slug>/og.html`(1200×630 고정 크기 HTML)을 만들어 꾸미고 `npm run og <slug>`로 다시 렌더링한다. 참고: `apps/dream-market/og.html`
+- 생성된 og.png를 Read로 열어 눈으로 확인한다.
+
 ## 6. 검증
 
 - `npm run build:app <slug>` 통과(타입체크 포함).
@@ -62,4 +68,5 @@ curl -s "https://sugayrefionpkzkzdgss.supabase.co/rest/v1/<prefix><table>?select
 
 - `git add apps/<slug> supabase/migrations package-lock.json` 후 커밋, `main`에 push. (push 전 사용자에게 확인)
 - GitHub Actions `Deploy to GitHub Pages` 완료 확인: `gh run watch` 또는 `gh run list --limit 1`.
+- 카카오톡은 미리보기를 캐시하므로, 문구·이미지를 바꿨다면 https://developers.kakao.com/tool/clear/og 에서 URL 캐시 초기화를 안내한다(페이스북: https://developers.facebook.com/tools/debug/).
 - 사용자에게 `https://yangsanghoon.github.io/services/<slug>/` 링크와, 적용이 필요한 마이그레이션이 남아있다면 그 사실을 알려준다.

@@ -1,4 +1,3 @@
-import { signOut } from '@lab/core';
 import { useCallback, useEffect, useState } from 'react';
 import { fetchMyDreams, fetchTodayRewards, withdrawDream } from '../lib/api';
 import { interpret, REVIEW_VERDICTS } from '../lib/dreamMeta';
@@ -9,7 +8,7 @@ import type { OwnedDream, Profile } from '../lib/types';
 import NameCard from './NameCard';
 import { ResellForm, ReviewForm } from './OwnedActions';
 
-type Section = 'bought' | 'selling' | 'sold';
+export type Section = 'bought' | 'selling' | 'sold';
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'bought', label: '🫙 보관함' },
@@ -26,16 +25,18 @@ const EMPTY: Record<Section, [string, string, string]> = {
 const priceText = (n: number) => (n === 0 ? '무료' : `${formatCoins(n)} 코인`);
 
 interface Props {
+  initialSection: Section;
   profile: Profile;
+  onBack: () => void;
   guest: boolean;
   onSignup: () => void;
   onRenamed: (p: Profile) => void;
   onCoins: (coins: number) => void;
 }
 
-export default function MyDreams({ profile, guest, onSignup, onRenamed, onCoins }: Props) {
+export default function MyDreams({ initialSection, profile, guest, onBack, onSignup, onRenamed, onCoins }: Props) {
   const [dreams, setDreams] = useState<OwnedDream[] | null>(null);
-  const [section, setSection] = useState<Section>('bought');
+  const [section, setSection] = useState<Section>(initialSection);
   const [form, setForm] = useState<{ id: string; kind: 'review' | 'resell' } | null>(null);
   const [today, setToday] = useState({ write: 0, vote: 0, review: 0 });
 
@@ -89,6 +90,9 @@ export default function MyDreams({ profile, guest, onSignup, onRenamed, onCoins 
 
   return (
     <main className="content mine">
+      <button className="back-link" onClick={onBack}>
+        ← 꿈 시장으로
+      </button>
       <NameCard profile={profile} guest={guest} onRenamed={(p) => (onRenamed(p), load())} />
       <div className="stats">
         <div className="stat" style={{ background: 'var(--dm-lav-50)' }}>
@@ -233,9 +237,6 @@ export default function MyDreams({ profile, guest, onSignup, onRenamed, onCoins 
         )}
       </div>
 
-      <button className="btn btn-outline" onClick={() => signOut()}>
-        🌙 {guest ? '게스트 나가기' : '로그아웃'}
-      </button>
     </main>
   );
 }

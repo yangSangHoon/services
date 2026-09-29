@@ -485,3 +485,31 @@ button.card-content small { font-size: 12px; color: var(--dm-lav-deep); font-fam
 .form-actions .btn { flex: 1; height: 46px; font-size: 15px; }
 .form-actions .btn-butter { box-shadow: 0 4px 0 var(--dm-butter-deep); }
 .form-actions .btn-candy { box-shadow: 0 4px 0 var(--dm-lav-shadow); }
+
+/* ─── 헤더 프로필 메뉴 (탭 대신) */
+.header-top { padding: 10px 16px; }
+.brand-btn { flex: 1; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; text-align: left; color: var(--dm-ink); }
+.profile { position: relative; flex: none; }
+.avatar {
+  position: relative; width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; padding: 0;
+  background: var(--dm-candy); box-shadow: var(--dm-shadow-sm); font-family: var(--dm-font-display); font-size: 19px; color: var(--dm-ink);
+  display: grid; place-items: center; transition: transform 0.1s, box-shadow 0.15s;
+}
+.avatar:active { transform: scale(0.94); }
+.avatar.on { box-shadow: 0 0 0 3px var(--dm-lav), var(--dm-shadow-sm); }
+.avatar-tag { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); padding: 1px 6px; border-radius: 999px; background: var(--dm-ink); color: #fff; font-family: var(--dm-font-body); font-size: 10px; white-space: nowrap; }
+.profile-menu {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 50; width: min(280px, calc(100vw - 32px));
+  padding: 8px; border-radius: 22px; background: #fff; box-shadow: var(--dm-shadow-lg); display: flex; flex-direction: column; gap: 2px;
+  animation: dcDrop 0.2s ease-out both; transform-origin: top right;
+}
+.pm-head { padding: 12px 12px 14px; margin-bottom: 4px; border-radius: 16px; background: linear-gradient(135deg, #efe9ff, #ffeaf3); display: flex; flex-direction: column; gap: 10px; }
+.pm-name { font-family: var(--dm-font-display); font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-coins { display: flex; align-items: center; gap: 10px; font-family: var(--dm-font-display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.pm-coins .coin { width: 34px; height: 34px; font-size: 16px; }
+.pm-coins small { display: block; font-family: var(--dm-font-body); font-size: 12px; color: var(--dm-ink-2); }
+.pm-join { height: 42px; font-size: 15px; box-shadow: 0 4px 0 var(--dm-butter-deep); }
+.pm-item { height: 46px; padding: 0 14px; border: 0; border-radius: 14px; background: none; text-align: left; font-family: var(--dm-font-display); font-size: 15px; color: var(--dm-ink); }
+.pm-item:hover { background: var(--dm-surface-2); }
+.pm-item.muted { color: var(--dm-ink-2); font-size: 14px; }
+.back-link { align-self: flex-start; height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: rgba(255, 255, 255, 0.85); box-shadow: var(--dm-shadow-sm); font-family: var(--dm-font-display); font-size: 14px; color: var(--dm-ink); }

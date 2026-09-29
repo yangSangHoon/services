@@ -2,7 +2,7 @@ import { isConfigured, isGuest, useSession } from '@lab/core';
 import { useCallback, useEffect, useState } from 'react';
 import { AuthPage, AuthScreen, NickPage, type AuthMode } from './components/Auth';
 import { AppBackdrop } from './components/Backdrops';
-import Header, { type Tab } from './components/Header';
+import Header, { type View } from './components/Header';
 import Market from './components/Market';
 import MyDreams from './components/MyDreams';
 import SellModal from './components/SellModal';
@@ -27,7 +27,7 @@ function DreamApp() {
   const { session, loading } = useSession();
   // undefined = 불러오는 중, null = 아직 프로필 없음(닉네임 정하기)
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
-  const [tab, setTab] = useState<Tab>('market');
+  const [view, setView] = useState<View>('market');
   const [selling, setSelling] = useState(false);
   const [signingUp, setSigningUp] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
@@ -95,11 +95,20 @@ function DreamApp() {
   return (
     <div className="app">
       <AppBackdrop />
-      <Header profile={profile} guest={guest} tab={tab} onTab={setTab} onSignup={openSignup} />
-      {tab === 'market' ? (
+      <Header profile={profile} guest={guest} onNavigate={setView} onSignup={openSignup} />
+      {view === 'market' ? (
         <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} />
       ) : (
-        <MyDreams profile={profile} guest={guest} onSignup={openSignup} onRenamed={setProfile} onCoins={setCoins} />
+        <MyDreams
+          key={view}
+          initialSection={view === 'bought' ? 'bought' : 'selling'}
+          profile={profile}
+          guest={guest}
+          onBack={() => setView('market')}
+          onSignup={openSignup}
+          onRenamed={setProfile}
+          onCoins={setCoins}
+        />
       )}
       {!selling && (
         <button className="btn fab" onClick={() => setSelling(true)}>

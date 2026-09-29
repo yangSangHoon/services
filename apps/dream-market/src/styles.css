@@ -441,3 +441,16 @@ button.card-content small { font-size: 12px; color: var(--dm-lav-deep); font-fam
 .check .box { width: 20px; height: 20px; border-radius: 7px; border: 2px solid var(--dm-lav-deep); display: grid; place-items: center; background: #fff; color: #fff; font-size: 13px; }
 .check.on .box { background: var(--dm-lav-deep); }
 .check:has(input:focus-visible) { outline: 2px solid var(--dm-lav-deep); outline-offset: 2px; }
+
+/* ─── 닉네임 카드 */
+.name-card { padding: 18px 20px; gap: 10px; }
+.name-card .err { position: relative; }
+.name-row { display: flex; align-items: center; gap: 10px; }
+.name-row strong { flex: 1; min-width: 0; font-family: var(--dm-font-display); font-weight: 400; font-size: 26px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pass .name-row button { align-self: auto; flex: none; }
+.name-card input { height: 48px; font-size: 24px; }
+.name-actions { display: flex; align-items: center; gap: 6px; }
+.name-actions .grow { flex: 1; }
+.pass .name-actions button { align-self: auto; height: 40px; padding: 0 14px; font-size: 14px; }
+.pass .name-actions .ghost { background: transparent; box-shadow: none; color: var(--dm-ink-2); }
+.pass .name-actions .save { background: var(--dm-butter); box-shadow: 0 3px 0 var(--dm-butter-deep); }

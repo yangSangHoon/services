@@ -37,6 +37,7 @@ const ERRORS: Record<string, string> = {
   ALREADY_CLAIMED: '첫 계시는 한 번뿐이에요 🙏',
   DREAM_NOT_FOUND: '꿈이 증발했어요… (판매가 취소됐나 봐요)',
   NO_PROFILE: '닉네임부터 정해 주세요',
+  INVALID_NICKNAME: '이름은 1~20자로 지어주세요.',
   NOT_AUTHENTICATED: '다시 입장해 주세요',
   SIGNUP_REQUIRED: '1억 코인은 회원만 받을 수 있어요 🎁',
   GUEST_FREE_ONLY: '게스트는 무료 나눔만 할 수 있어요. 가입하면 가격을 매길 수 있어요!',

@@ -99,7 +99,7 @@ function DreamApp() {
       {tab === 'market' ? (
         <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} />
       ) : (
-        <MyDreams profile={profile} guest={guest} onSignup={openSignup} />
+        <MyDreams profile={profile} guest={guest} onSignup={openSignup} onRenamed={setProfile} />
       )}
       {!selling && (
         <button className="btn fab" onClick={() => setSelling(true)}>

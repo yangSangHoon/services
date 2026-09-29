@@ -6,6 +6,7 @@ import { formatCoins, friendlyError } from '../lib/format';
 import { announce, onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { OwnedDream, Profile } from '../lib/types';
+import NameCard from './NameCard';
 
 type Section = 'bought' | 'selling' | 'sold';
 
@@ -23,7 +24,14 @@ const EMPTY: Record<Section, [string, string, string]> = {
 
 const priceText = (n: number) => (n === 0 ? '무료' : `${formatCoins(n)} 코인`);
 
-export default function MyDreams({ profile, guest, onSignup }: { profile: Profile; guest: boolean; onSignup: () => void }) {
+interface Props {
+  profile: Profile;
+  guest: boolean;
+  onSignup: () => void;
+  onRenamed: (p: Profile) => void;
+}
+
+export default function MyDreams({ profile, guest, onSignup, onRenamed }: Props) {
   const [dreams, setDreams] = useState<OwnedDream[] | null>(null);
   const [section, setSection] = useState<Section>('bought');
 
@@ -60,6 +68,7 @@ export default function MyDreams({ profile, guest, onSignup }: { profile: Profil
 
   return (
     <main className="content mine">
+      <NameCard profile={profile} guest={guest} onRenamed={(p) => (onRenamed(p), load())} />
       <div className="stats">
         <div className="stat" style={{ background: 'var(--dm-lav-50)' }}>
           <span>🫙</span>

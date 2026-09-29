@@ -26,6 +26,12 @@ export async function joinDreamWorld(nickname: string) {
   return data as Profile;
 }
 
+export async function renameMe(nickname: string) {
+  const { data, error } = await supabase.rpc(fn('rename'), { p_nickname: nickname });
+  if (error) throw error;
+  return data as Profile;
+}
+
 export async function claimWelcomeBonus() {
   const { data, error } = await supabase.rpc(fn('claim_bonus'));
   if (error) throw error;

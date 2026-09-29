@@ -1,0 +1,18 @@
+{
+  "name": "@lab/__SLUG__",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "lab": {
+    "title": "__TITLE__",
+    "emoji": "__EMOJI__",
+    "description": "__DESC__"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@lab/core": "*"
+  }
+}

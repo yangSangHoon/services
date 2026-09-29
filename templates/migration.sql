@@ -1,0 +1,14 @@
+-- [__SLUG__] __TITLE__
+-- 공유 Supabase 프로젝트 규칙: 모든 테이블/함수/인덱스/정책 이름은 `__PREFIX__` 접두사를 쓴다.
+-- 권장 패턴: RLS로 읽기만 열고, 쓰기(특히 포인트·재고처럼 조작되면 안 되는 값)는 security definer RPC로만.
+
+-- 예시 (필요 없으면 지우고 새로 작성)
+-- create table if not exists public.__PREFIX__items (
+--   id         uuid primary key default gen_random_uuid(),
+--   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+--   body       text not null check (char_length(body) between 1 and 500),
+--   created_at timestamptz not null default now()
+-- );
+-- alter table public.__PREFIX__items enable row level security;
+-- create policy "__PREFIX__items read" on public.__PREFIX__items for select to authenticated using (true);
+-- create policy "__PREFIX__items insert own" on public.__PREFIX__items for insert to authenticated with check (user_id = auth.uid());

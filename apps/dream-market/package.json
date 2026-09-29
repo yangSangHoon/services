@@ -1,0 +1,22 @@
+{
+  "name": "@lab/dream-market",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "lab": {
+    "title": "꿈사꿈팔",
+    "emoji": "🌙",
+    "description": "내 꿈을 팔고 남의 꿈을 사는 시장. 산 꿈은 사라져요."
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@lab/core": "*",
+    "canvas-confetti": "^1.9.3"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.6.4"
+  }
+}

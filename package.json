@@ -1,0 +1,26 @@
+{
+  "name": "idea-lab",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "new": "node scripts/new-app.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build-all.mjs",
+    "build:app": "node scripts/build-all.mjs --only"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.109.0",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

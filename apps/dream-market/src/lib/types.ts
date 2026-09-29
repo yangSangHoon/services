@@ -22,8 +22,7 @@ export interface Dream {
   buyer_nickname: string | null;
   sold_at: string | null;
   created_at: string;
+  content: string | null; // 판매 중이거나 내가 사고판 꿈만 채워짐
 }
 
-export interface OwnedDream extends Dream {
-  content: string | null;
-}
+export type OwnedDream = Dream;

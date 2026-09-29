@@ -1,5 +1,5 @@
 import confetti from 'canvas-confetti';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { buyDream } from '../lib/api';
 import { interpret, kindMeta } from '../lib/dreamMeta';
 import { formatCoins, friendlyError, isGoneError } from '../lib/format';
@@ -21,8 +21,6 @@ interface Props {
 export default function BuyModal({ dream, profile, guest, onClose, onBought, onSignup }: Props) {
   const [step, setStep] = useState<Step>('contract');
   const [agreed, setAgreed] = useState(false);
-  const [content, setContent] = useState('');
-  const typed = useTypewriter(content);
   const kind = kindMeta(dream.kind);
   const free = dream.price === 0;
   const canAfford = profile.coins >= dream.price;
@@ -32,7 +30,6 @@ export default function BuyModal({ dream, profile, guest, onClose, onBought, onS
     setStep('buying');
     try {
       const [result] = await Promise.all([buyDream(dream.id), new Promise((r) => setTimeout(r, 1400))]);
-      setContent(result.content);
       setStep('reveal');
       onBought(result.coins);
       announce({
@@ -64,6 +61,7 @@ export default function BuyModal({ dream, profile, guest, onClose, onBought, onS
                 <p className="muted small">판매자 {dream.seller_nickname}</p>
               </div>
             </div>
+            {dream.content && <p className="dream-content">{dream.content}</p>}
             {free ? (
               <p className="receipt muted small">공짜 꿈이에요. 감사 인사는 마음속으로 🙏</p>
             ) : (
@@ -117,13 +115,10 @@ export default function BuyModal({ dream, profile, guest, onClose, onBought, onS
 
         {step === 'reveal' && (
           <>
-            <p className="eyebrow">🔓 봉인 해제!</p>
-            <h2>
-              {kind.emoji} {dream.title}
-            </h2>
-            <div className="dream-content">
-              {typed}
-              <span className="caret" />
+            <p className="eyebrow">🎉 거래 성사!</p>
+            <div className="won">
+              <span className="kind-emoji big">{kind.emoji}</span>
+              <h2>「{dream.title}」은(는) 이제 당신 꿈</h2>
             </div>
             <div className="fortune">
               <div>
@@ -144,23 +139,4 @@ export default function BuyModal({ dream, profile, guest, onClose, onBought, onS
       </div>
     </div>
   );
-}
-
-function useTypewriter(text: string, speed = 28) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    setN(0);
-    if (!text) return;
-    const id = setInterval(() => {
-      setN((v) => {
-        if (v >= text.length) {
-          clearInterval(id);
-          return v;
-        }
-        return v + 1;
-      });
-    }, speed);
-    return () => clearInterval(id);
-  }, [text, speed]);
-  return text.slice(0, n);
 }

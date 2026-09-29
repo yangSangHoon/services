@@ -134,11 +134,14 @@ select { width: auto; padding: 8px 12px; }
 .honesty-real { color: var(--success); }
 .honesty-fake { color: var(--danger); }
 .teaser { margin: 0; color: var(--muted); font-style: italic; }
-.sealed {
-  margin-top: auto; padding: 10px; border-radius: 12px; text-align: center; font-size: 13px; color: var(--muted);
-  background: repeating-linear-gradient(45deg, transparent 0 8px, rgba(255, 255, 255, 0.03) 8px 16px);
-  border: 1px dashed var(--line);
+.card-content {
+  margin: 0; margin-top: auto; padding: 10px 12px; border-radius: 12px; font-size: 14px; line-height: 1.6;
+  background: rgba(0, 0, 0, 0.2); white-space: pre-wrap; cursor: pointer;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
 }
+.card-content.expanded { -webkit-line-clamp: unset; }
+.won { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.won .kind-emoji { animation: float 3s ease-in-out infinite; }
 .card-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .btn-buy { background: var(--accent); color: var(--accent-fg); white-space: nowrap; }
 .btn-buy:not(:disabled):hover { transform: scale(1.06); }
@@ -180,8 +183,7 @@ select { width: auto; padding: 8px 12px; }
 .buying { text-align: center; padding: 30px 0; }
 .bubble-jar { font-size: 72px; animation: shake 0.3s infinite; }
 
-.dream-content { margin: 0; padding: 14px; border-radius: 14px; background: rgba(0, 0, 0, 0.25); line-height: 1.7; white-space: pre-wrap; min-height: 60px; }
-.caret { display: inline-block; width: 2px; height: 1em; background: var(--accent); vertical-align: middle; animation: blink 0.8s steps(1) infinite; }
+.dream-content { margin: 0; padding: 14px; border-radius: 14px; background: rgba(0, 0, 0, 0.25); line-height: 1.7; white-space: pre-wrap; max-height: 40vh; overflow-y: auto; }
 .fortune { display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-2); background: rgba(160, 139, 255, 0.1); }
 .fortune p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 .luck { display: flex; flex-direction: column; align-items: center; flex: none; font-size: 12px; color: var(--muted); }

@@ -70,7 +70,7 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
         </label>
 
         <label className="field">
-          <span>🔒 봉인될 꿈 내용 (산 사람만 볼 수 있어요)</span>
+          <span>꿈 내용</span>
           <textarea
             value={content}
             maxLength={2000}

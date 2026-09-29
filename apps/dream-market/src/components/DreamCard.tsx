@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { HONESTY, kindMeta } from '../lib/dreamMeta';
 import { formatPrice, timeAgo } from '../lib/format';
 import type { Dream } from '../lib/types';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function DreamCard({ dream, index, isMine, vanishing, onBuy }: Props) {
+  const [expanded, setExpanded] = useState(false);
   const kind = kindMeta(dream.kind);
   const honesty = HONESTY[dream.honesty];
   return (
@@ -29,7 +31,11 @@ export default function DreamCard({ dream, index, isMine, vanishing, onBuy }: Pr
       </div>
       <h3>{dream.title}</h3>
       {dream.teaser && <p className="teaser">“{dream.teaser}”</p>}
-      <div className="sealed">🔒 꿈 내용은 봉인되어 있어요</div>
+      {dream.content && (
+        <p className={`card-content ${expanded ? 'expanded' : ''}`} onClick={() => setExpanded((v) => !v)}>
+          {dream.content}
+        </p>
+      )}
       <footer className="card-foot">
         <span className="muted small">
           {dream.seller_nickname} · {timeAgo(dream.created_at)}

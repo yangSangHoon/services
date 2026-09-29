@@ -1,10 +1,18 @@
 import { supabase } from '@lab/core';
-import type { Dream, DreamKind, Honesty, OwnedDream, Profile } from './types';
+import type { Dream, DreamKind, Honesty, Profile } from './types';
 
 // 공유 DB라 모든 테이블/함수는 앱 접두사를 붙인다 (supabase/migrations/*_dream_market.sql)
 const PREFIX = 'dream_market_';
 const T = { profiles: `${PREFIX}profiles`, dreams: `${PREFIX}dreams` };
 const fn = (name: string) => `${PREFIX}${name}`;
+
+type Row = Omit<Dream, 'content'> & { dream_market_contents: { content: string } | { content: string }[] | null };
+
+/** 1:1 관계라 객체로 오지만, 배열로 오는 경우도 대비 */
+function withContent({ dream_market_contents: c, ...d }: Row): Dream {
+  const row = Array.isArray(c) ? c[0] : c;
+  return { ...d, content: row?.content ?? null };
+}
 
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase.from(T.profiles).select('*').eq('id', userId).maybeSingle();
@@ -27,12 +35,12 @@ export async function claimWelcomeBonus() {
 export async function fetchMarket() {
   const { data, error } = await supabase
     .from(T.dreams)
-    .select('*')
+    .select('*, dream_market_contents(content)')
     .eq('status', 'on_sale')
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) throw error;
-  return data as Dream[];
+  return (data as Row[]).map(withContent);
 }
 
 export async function sellDream(input: {
@@ -52,7 +60,7 @@ export async function sellDream(input: {
     p_price: input.price,
   });
   if (error) throw error;
-  return data as Dream;
+  return { ...(data as Omit<Dream, 'content'>), content: input.content.trim() };
 }
 
 export async function buyDream(dreamId: string) {
@@ -66,7 +74,6 @@ export async function withdrawDream(dreamId: string) {
   if (error) throw error;
 }
 
-type Row = Dream & { dream_market_contents: { content: string } | { content: string }[] | null };
 
 export async function fetchMyDreams(userId: string) {
   const { data, error } = await supabase
@@ -75,8 +82,5 @@ export async function fetchMyDreams(userId: string) {
     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data as Row[]).map(({ dream_market_contents, ...d }): OwnedDream => {
-    const c = Array.isArray(dream_market_contents) ? dream_market_contents[0] : dream_market_contents;
-    return { ...d, content: c?.content ?? null };
-  });
+  return (data as Row[]).map(withContent);
 }

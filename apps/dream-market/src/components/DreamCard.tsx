@@ -47,10 +47,7 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, poof
             {honesty.emoji} {honesty.label}
           </span>
         </div>
-        <div>
-          <h3>{dream.title}</h3>
-          {dream.teaser && <p className="teaser">“{dream.teaser}”</p>}
-        </div>
+        <h3>{dream.title}</h3>
         {sold ? (
           <p className="card-sealed">🔒 팔린 꿈이라 내용은 가져간 사람만 볼 수 있어요</p>
         ) : dream.content && (

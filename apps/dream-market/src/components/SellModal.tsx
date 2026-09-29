@@ -19,7 +19,6 @@ const MAX_PRICE = 1_000_000_000_000;
 export default function SellModal({ guest, onClose }: { guest: boolean; onClose: () => void }) {
   const [honesty, setHonesty] = useState<Honesty>('real');
   const [title, setTitle] = useState('');
-  const [teaser, setTeaser] = useState('');
   const [content, setContent] = useState('');
   const [price, setPrice] = useState(10_000);
   const [free, setFree] = useState(guest);
@@ -34,7 +33,7 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
     setError('');
     setSaving(true);
     try {
-      const dream = await sellDream({ title, teaser, content, kind: null, honesty, price: finalPrice });
+      const dream = await sellDream({ title, teaser: '', content, kind: null, honesty, price: finalPrice });
       announce({ type: 'listed', dream });
       toast('🌙 시장에 올라갔어요!', 'success');
       onClose();
@@ -58,10 +57,6 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
         <label className="field">
           제목
           <input className="input" value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="예) 용이 물속에서 나타남" />
-        </label>
-        <label className="field">
-          맛보기 한 줄 <span className="hint">선택</span>
-          <input className="input" value={teaser} maxLength={80} onChange={(e) => setTeaser(e.target.value)} placeholder="예) 근데 그 용이…" />
         </label>
         <label className="field">
           꿈 내용 <span className="hint">시장에서 누구나 볼 수 있어요. 카드에는 4줄까지 보여요</span>

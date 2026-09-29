@@ -123,7 +123,7 @@ export default function MyDreams({ profile, guest, onSignup }: { profile: Profil
                     <div className="owned-title">{d.title}</div>
                     <div className="owned-meta">
                       {section === 'bought' && `${d.seller_nickname}에게서 · ${priceText(d.price)}`}
-                      {section === 'selling' && `${priceText(d.price)}${d.teaser ? ` · “${d.teaser}”` : ''}`}
+                      {section === 'selling' && priceText(d.price)}
                       {section === 'sold' && `${d.buyer_nickname ?? '누군가'}님이 가져감`}
                     </div>
                   </div>

@@ -453,3 +453,35 @@ button.card-content small { font-size: 12px; color: var(--dm-lav-deep); font-fam
 .pass .name-actions button { align-self: auto; height: 40px; padding: 0 14px; font-size: 14px; }
 .pass .name-actions .ghost { background: transparent; box-shadow: none; color: var(--dm-ink-2); }
 .pass .name-actions .save { background: var(--dm-butter); box-shadow: 0 3px 0 var(--dm-butter-deep); }
+
+/* ─── 코인 벌기 · 투표 · 후기 · 되팔기 */
+.badge.resale { background: var(--dm-sky); }
+.card-top { flex-wrap: wrap; gap: 6px; }
+.votes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.votes button {
+  height: 36px; border-radius: 999px; border: 1.5px solid var(--dm-lav-50); background: #fff; font-family: var(--dm-font-display); font-size: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 4px; transition: transform 0.08s;
+}
+.votes button b { font-weight: 400; color: var(--dm-lav-deep); }
+.votes button.on { background: var(--dm-lav-50); border-color: var(--dm-lav-deep); }
+.votes button:not(:disabled):active { transform: scale(0.95); }
+.card-review { margin: 0; padding: 10px 12px; border-radius: 14px; font-size: 14px; line-height: 1.5; }
+.card-review b { display: block; font-family: var(--dm-font-display); font-weight: 400; font-size: 13px; margin-bottom: 2px; }
+.card-review span { color: var(--dm-ink-2); font-size: 12px; }
+.earn-note { margin: 0; font-size: 13px; color: var(--dm-ink-2); text-align: center; }
+.earn-note b { color: var(--dm-lav-deep); font-weight: 400; font-family: var(--dm-font-display); }
+.earn { padding: 16px 18px; border-radius: 22px; background: rgba(255, 255, 255, 0.9); box-shadow: var(--dm-shadow-sm); display: flex; flex-direction: column; gap: 8px; }
+.earn-title { font-family: var(--dm-font-display); font-size: 17px; margin-bottom: 2px; }
+.earn-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.earn-row span { flex: 1; }
+.earn-row b { font-family: var(--dm-font-display); font-weight: 400; color: var(--dm-pink-deep); }
+.earn-row em { font-style: normal; min-width: 48px; text-align: right; padding: 2px 8px; border-radius: 999px; background: var(--dm-lav-50); font-size: 12px; color: var(--dm-lav-deep); }
+.owned-actions { display: flex; gap: 8px; }
+.owned-actions .btn { flex: 1; height: 42px; font-size: 14px; background: var(--dm-lav-50); }
+.owned-actions .btn small { font-size: 12px; color: var(--dm-pink-deep); }
+.owned-actions .done { flex: 1; height: 42px; display: grid; place-items: center; border-radius: 999px; border: 1.5px dashed var(--dm-lav); font-family: var(--dm-font-display); font-size: 14px; color: var(--dm-ink-3); }
+.owned-form { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.form-actions { display: flex; gap: 8px; }
+.form-actions .btn { flex: 1; height: 46px; font-size: 15px; }
+.form-actions .btn-butter { box-shadow: 0 4px 0 var(--dm-butter-deep); }
+.form-actions .btn-candy { box-shadow: 0 4px 0 var(--dm-lav-shadow); }

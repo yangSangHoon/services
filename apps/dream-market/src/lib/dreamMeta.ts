@@ -1,4 +1,4 @@
-import type { DreamKind, Honesty } from './types';
+import type { DreamKind, Honesty, ReviewVerdict } from './types';
 
 interface KindMeta {
   emoji: string;
@@ -64,3 +64,9 @@ export function randomNickname() {
   const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
   return `${pick(ADJECTIVES)} ${pick(NOUNS)}`;
 }
+
+export const REVIEW_VERDICTS: Record<ReviewVerdict, { emoji: string; label: string; tint: string }> = {
+  hit: { emoji: '🎯', label: '맞았어요', tint: '#d4f3e6' },
+  meh: { emoji: '🤷', label: '글쎄요', tint: '#fff1c2' },
+  miss: { emoji: '💨', label: '안 맞았어요', tint: '#ffe0ec' },
+};

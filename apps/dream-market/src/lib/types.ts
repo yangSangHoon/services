@@ -22,7 +22,35 @@ export interface Dream {
   buyer_nickname: string | null;
   sold_at: string | null;
   created_at: string;
-  content: string | null; // 판매 중이거나 내가 사고판 꿈만 채워짐
+  content: string | null;
+  /** 되판 매물이면 원래 산 꿈 id */
+  parent_id: string | null;
+  /** 1 = 처음 올라온 꿈, 2부터 되판 꿈 */
+  generation: number;
+  original_seller_nickname: string | null;
+  votes_real: number;
+  votes_fake: number;
+  /** 구매자가 이 꿈을 되팔기 했는지 */
+  resold: boolean;
+  review: Review | null;
 }
 
 export type OwnedDream = Dream;
+
+export type Verdict = 'real' | 'fake';
+export type ReviewVerdict = 'hit' | 'meh' | 'miss';
+
+export interface Review {
+  verdict: ReviewVerdict;
+  body: string;
+  user_nickname: string;
+}
+
+/** 보상 지급 결과. amount 0이면 reason에 이유 */
+export interface Reward {
+  amount: number;
+  reason?: 'guest' | 'daily_cap' | 'already' | 'too_short' | 'changed' | 'same';
+  today?: number;
+  cap?: number;
+  coins?: number;
+}

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchMarket } from '../lib/api';
-import { friendlyError } from '../lib/format';
+import { fetchMarket, fetchMyVotes, voteDream } from '../lib/api';
+import { friendlyError, rewardMessage } from '../lib/format';
 import { onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
-import type { Dream, Profile } from '../lib/types';
+import type { Dream, Profile, Verdict } from '../lib/types';
 import BuyModal from './BuyModal';
 import DreamCard from './DreamCard';
 
@@ -37,16 +37,19 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   const [onlyOnSale, setOnlyOnSale] = useState(readOnlyOnSale);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [buying, setBuying] = useState<Dream | null>(null);
+  const [myVotes, setMyVotes] = useState<Map<string, Verdict>>(new Map());
 
   const load = useCallback(async () => {
     try {
-      setDreams(await fetchMarket());
+      const [list, votes] = await Promise.all([fetchMarket(), fetchMyVotes(profile.id)]);
+      setDreams(list);
+      setMyVotes(votes);
     } catch (err) {
       toast(friendlyError(err), 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile.id]);
 
   const without = (set: Set<string>, id: string) => {
     const next = new Set(set);
@@ -123,6 +126,20 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
     setBuying(d);
   };
 
+  const vote = async (d: Dream, verdict: Verdict) => {
+    try {
+      const r = await voteDream(d.id, verdict);
+      setDreams((ds) => ds.map((x) => (x.id === d.id ? { ...x, votes_real: r.real, votes_fake: r.fake } : x)));
+      setMyVotes((m) => new Map(m).set(d.id, r.verdict));
+      if (r.reward.coins !== undefined) onCoins(r.reward.coins);
+      const msg = rewardMessage(r.reward, '감정 투표');
+      if (msg) toast(msg, 'success');
+      else if (r.reward.reason === 'changed') toast('감정을 바꿨어요 (보상은 처음 한 번만)');
+    } catch (err) {
+      toast(friendlyError(err), 'error');
+    }
+  };
+
   const drawRandom = () => {
     const pool = onSale.filter((d) => d.seller_id !== profile.id && (!guest || d.price === 0));
     if (!pool.length) return toast('뽑을 꿈이 없어요 😴');
@@ -182,7 +199,9 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
               poofing={poofing.has(d.id)}
               fresh={fresh.has(d.id)}
               highlighted={highlight === d.id}
+              myVote={myVotes.get(d.id)}
               onBuy={open}
+              onVote={vote}
             />
           ))}
         </div>

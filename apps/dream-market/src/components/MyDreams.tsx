@@ -1,12 +1,13 @@
 import { signOut } from '@lab/core';
 import { useCallback, useEffect, useState } from 'react';
-import { fetchMyDreams, withdrawDream } from '../lib/api';
-import { interpret } from '../lib/dreamMeta';
-import { formatCoins, friendlyError } from '../lib/format';
+import { fetchMyDreams, fetchTodayRewards, withdrawDream } from '../lib/api';
+import { interpret, REVIEW_VERDICTS } from '../lib/dreamMeta';
+import { formatCoins, friendlyError, rewardMessage } from '../lib/format';
 import { announce, onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { OwnedDream, Profile } from '../lib/types';
 import NameCard from './NameCard';
+import { ResellForm, ReviewForm } from './OwnedActions';
 
 type Section = 'bought' | 'selling' | 'sold';
 
@@ -29,15 +30,20 @@ interface Props {
   guest: boolean;
   onSignup: () => void;
   onRenamed: (p: Profile) => void;
+  onCoins: (coins: number) => void;
 }
 
-export default function MyDreams({ profile, guest, onSignup, onRenamed }: Props) {
+export default function MyDreams({ profile, guest, onSignup, onRenamed, onCoins }: Props) {
   const [dreams, setDreams] = useState<OwnedDream[] | null>(null);
   const [section, setSection] = useState<Section>('bought');
+  const [form, setForm] = useState<{ id: string; kind: 'review' | 'resell' } | null>(null);
+  const [today, setToday] = useState({ write: 0, vote: 0, review: 0 });
 
   const load = useCallback(async () => {
     try {
-      setDreams(await fetchMyDreams(profile.id));
+      const [mine, counts] = await Promise.all([fetchMyDreams(profile.id), fetchTodayRewards(profile.id)]);
+      setDreams(mine);
+      setToday(counts);
     } catch (err) {
       toast(friendlyError(err), 'error');
     }
@@ -57,6 +63,21 @@ export default function MyDreams({ profile, guest, onSignup, onRenamed }: Props)
     } catch (err) {
       toast(friendlyError(err), 'error');
     }
+  };
+
+  const reviewed = (d: OwnedDream, review: NonNullable<OwnedDream['review']>, reward: Parameters<typeof rewardMessage>[0]) => {
+    setDreams((ds) => ds?.map((x) => (x.id === d.id ? { ...x, review } : x)) ?? null);
+    setForm(null);
+    if (reward.coins !== undefined) onCoins(reward.coins);
+    if (reward.amount > 0) setToday((t) => ({ ...t, review: t.review + 1 }));
+    toast(rewardMessage(reward, '후기') ?? '💬 후기를 남겼어요', 'success');
+  };
+
+  const resold = (d: OwnedDream) => {
+    announce({ type: 'listed', dream: d });
+    setForm(null);
+    toast('🔁 꿈을 다시 시장에 올렸어요', 'success');
+    load();
   };
 
   const bought = dreams?.filter((d) => d.buyer_id === profile.id) ?? [];
@@ -99,6 +120,27 @@ export default function MyDreams({ profile, guest, onSignup, onRenamed }: Props)
           <button className="btn btn-butter" onClick={onSignup}>
             🎁 가입하고 1억 받기
           </button>
+        </div>
+      )}
+
+      {!guest && (
+        <div className="earn">
+          <div className="earn-title">💰 오늘의 코인 벌기</div>
+          <div className="earn-row">
+            <span>✍️ 꿈 쓰기</span>
+            <b>+100만</b>
+            <em>{Math.min(today.write, 3)}/3</em>
+          </div>
+          <div className="earn-row">
+            <span>🗳️ 감정 투표</span>
+            <b>+10만</b>
+            <em>{Math.min(today.vote, 20)}/20</em>
+          </div>
+          <div className="earn-row">
+            <span>💬 산 꿈 후기</span>
+            <b>+50만</b>
+            <em>건마다</em>
+          </div>
         </div>
       )}
 
@@ -148,12 +190,43 @@ export default function MyDreams({ profile, guest, onSignup, onRenamed }: Props)
                   )}
                 </div>
                 {section === 'bought' && d.content && <div className="owned-content">{d.content}</div>}
+                {section === 'bought' && d.review && (
+                  <p className="card-review" style={{ background: REVIEW_VERDICTS[d.review.verdict].tint }}>
+                    <b>
+                      {REVIEW_VERDICTS[d.review.verdict].emoji} {REVIEW_VERDICTS[d.review.verdict].label}
+                    </b>
+                    “{d.review.body}”
+                  </p>
+                )}
                 {section === 'bought' && (
                   <div className="owned-fortune">
                     <span>🔮 {fortune}</span>
                     <strong>행운 {luck}%</strong>
                   </div>
                 )}
+                {section === 'bought' &&
+                  (form?.id === d.id ? (
+                    form.kind === 'review' ? (
+                      <ReviewForm dream={d} onDone={(review, reward) => reviewed(d, review, reward)} onCancel={() => setForm(null)} />
+                    ) : (
+                      <ResellForm dream={d} guest={guest} onDone={resold} onCancel={() => setForm(null)} />
+                    )
+                  ) : (
+                    <div className="owned-actions">
+                      {!d.review && (
+                        <button className="btn" onClick={() => setForm({ id: d.id, kind: 'review' })}>
+                          ✍️ 후기 쓰기{!guest && <small>+50만</small>}
+                        </button>
+                      )}
+                      {d.resold ? (
+                        <span className="done">🔁 되팔기함</span>
+                      ) : (
+                        <button className="btn" onClick={() => setForm({ id: d.id, kind: 'resell' })}>
+                          🔁 되팔기
+                        </button>
+                      )}
+                    </div>
+                  ))}
               </article>
             );
           })

@@ -1,17 +1,23 @@
 import { supabase } from '@lab/core';
-import type { Dream, DreamKind, Honesty, Profile } from './types';
+import type { Dream, Honesty, Profile, Review, ReviewVerdict, Reward, Verdict } from './types';
 
 // 공유 DB라 모든 테이블/함수는 앱 접두사를 붙인다 (supabase/migrations/*_dream_market.sql)
 const PREFIX = 'dream_market_';
 const T = { profiles: `${PREFIX}profiles`, dreams: `${PREFIX}dreams` };
 const fn = (name: string) => `${PREFIX}${name}`;
 
-type Row = Omit<Dream, 'content'> & { dream_market_contents: { content: string } | { content: string }[] | null };
+type OneOrMany<T> = T | T[] | null;
+type Row = Omit<Dream, 'content' | 'review'> & {
+  dream_market_contents: OneOrMany<{ content: string }>;
+  dream_market_reviews: OneOrMany<Review>;
+};
+const DREAM_SELECT = '*, dream_market_contents(content), dream_market_reviews(verdict, body, user_nickname)';
 
 /** 1:1 관계라 객체로 오지만, 배열로 오는 경우도 대비 */
-function withContent({ dream_market_contents: c, ...d }: Row): Dream {
-  const row = Array.isArray(c) ? c[0] : c;
-  return { ...d, content: row?.content ?? null };
+const one = <T,>(v: OneOrMany<T>) => (Array.isArray(v) ? (v[0] ?? null) : v);
+
+function toDream({ dream_market_contents: c, dream_market_reviews: r, ...d }: Row): Dream {
+  return { ...d, content: one(c)?.content ?? null, review: one(r) };
 }
 
 export async function fetchProfile(userId: string) {
@@ -41,31 +47,64 @@ export async function claimWelcomeBonus() {
 export async function fetchMarket() {
   const { data, error } = await supabase
     .from(T.dreams)
-    .select('*, dream_market_contents(content)')
+    .select(DREAM_SELECT)
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) throw error;
-  return (data as Row[]).map(withContent);
+  return (data as Row[]).map(toDream);
 }
 
-export async function sellDream(input: {
-  title: string;
-  teaser: string;
-  content: string;
-  kind: DreamKind | null;
-  honesty: Honesty;
-  price: number;
-}) {
-  const { data, error } = await supabase.rpc(fn('sell'), {
+/** 꿈 올리기 + 쓰기 보상 */
+export async function listDream(input: { title: string; content: string; honesty: Honesty; price: number }) {
+  const { data, error } = await supabase.rpc(fn('list'), {
     p_title: input.title,
-    p_teaser: input.teaser,
     p_content: input.content,
-    p_kind: input.kind,
     p_honesty: input.honesty,
     p_price: input.price,
   });
   if (error) throw error;
-  return { ...(data as Omit<Dream, 'content'>), content: input.content.trim() };
+  const { dream, reward } = data as { dream: Omit<Dream, 'content' | 'review'>; reward: Reward };
+  return { dream: { ...dream, content: input.content.trim(), review: null } as Dream, reward };
+}
+
+export async function voteDream(dreamId: string, verdict: Verdict) {
+  const { data, error } = await supabase.rpc(fn('vote'), { p_dream_id: dreamId, p_verdict: verdict });
+  if (error) throw error;
+  return data as { real: number; fake: number; verdict: Verdict; reward: Reward };
+}
+
+export async function fetchMyVotes(userId: string) {
+  const { data, error } = await supabase.from(`${PREFIX}votes`).select('dream_id, verdict').eq('user_id', userId);
+  if (error) throw error;
+  return new Map((data as { dream_id: string; verdict: Verdict }[]).map((v) => [v.dream_id, v.verdict]));
+}
+
+export async function reviewDream(dreamId: string, verdict: ReviewVerdict, body: string) {
+  const { data, error } = await supabase.rpc(fn('review'), { p_dream_id: dreamId, p_verdict: verdict, p_body: body });
+  if (error) throw error;
+  return data as { review: Review; reward: Reward };
+}
+
+/** 산 꿈을 새 매물로 되팔기 */
+export async function resellDream(dream: Dream, price: number) {
+  const { data, error } = await supabase.rpc(fn('resell'), { p_dream_id: dream.id, p_price: price });
+  if (error) throw error;
+  return { ...(data as Omit<Dream, 'content' | 'review'>), content: dream.content, review: null } as Dream;
+}
+
+/** 오늘(한국 시간) 받은 보상 횟수 */
+export async function fetchTodayRewards(userId: string) {
+  const kst = new Date(Date.now() + 9 * 3600_000);
+  const startOfDay = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - 9 * 3600_000);
+  const { data, error } = await supabase
+    .from(`${PREFIX}rewards`)
+    .select('kind')
+    .eq('user_id', userId)
+    .gte('created_at', startOfDay.toISOString());
+  if (error) throw error;
+  const count = { write: 0, vote: 0, review: 0 };
+  for (const r of data as { kind: keyof typeof count }[]) count[r.kind]++;
+  return count;
 }
 
 export async function buyDream(dreamId: string) {
@@ -83,9 +122,9 @@ export async function withdrawDream(dreamId: string) {
 export async function fetchMyDreams(userId: string) {
   const { data, error } = await supabase
     .from(T.dreams)
-    .select('*, dream_market_contents(content)')
+    .select(DREAM_SELECT)
     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data as Row[]).map(withContent);
+  return (data as Row[]).map(toDream);
 }

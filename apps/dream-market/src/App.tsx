@@ -99,14 +99,14 @@ function DreamApp() {
       {tab === 'market' ? (
         <Market profile={profile} guest={guest} onCoins={setCoins} onSignup={openSignup} />
       ) : (
-        <MyDreams profile={profile} guest={guest} onSignup={openSignup} onRenamed={setProfile} />
+        <MyDreams profile={profile} guest={guest} onSignup={openSignup} onRenamed={setProfile} onCoins={setCoins} />
       )}
       {!selling && (
         <button className="btn fab" onClick={() => setSelling(true)}>
           {guest ? '🎁 꿈 나눔하기' : '✨ 꿈 팔기'}
         </button>
       )}
-      {selling && <SellModal guest={guest} onClose={() => setSelling(false)} />}
+      {selling && <SellModal guest={guest} onClose={() => setSelling(false)} onCoins={setCoins} />}
       {signingUp && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, overflowY: 'auto' }}>
           <AuthPage mode={authMode} onMode={setAuthMode} upgrading={guest} onBack={() => setSigningUp(false)} onDone={() => setSigningUp(false)} />

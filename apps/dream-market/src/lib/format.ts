@@ -1,4 +1,5 @@
 import { authErrorMessage } from '@lab/core';
+import type { Reward } from './types';
 
 const UNITS = [
   ['조', 1_000_000_000_000],
@@ -38,6 +39,10 @@ const ERRORS: Record<string, string> = {
   DREAM_NOT_FOUND: '꿈이 증발했어요… (판매가 취소됐나 봐요)',
   NO_PROFILE: '닉네임부터 정해 주세요',
   INVALID_NICKNAME: '이름은 1~20자로 지어주세요.',
+  INVALID_REVIEW: '후기는 1~200자로 남겨주세요.',
+  ALREADY_REVIEWED: '이 꿈엔 이미 후기를 남겼어요.',
+  NOT_BUYER: '내가 산 꿈만 할 수 있어요.',
+  ALREADY_RESOLD: '이미 되팔기한 꿈이에요.',
   NOT_AUTHENTICATED: '다시 입장해 주세요',
   SIGNUP_REQUIRED: '1억 코인은 회원만 받을 수 있어요 🎁',
   GUEST_FREE_ONLY: '게스트는 무료 나눔만 할 수 있어요. 가입하면 가격을 매길 수 있어요!',
@@ -54,4 +59,22 @@ export function friendlyError(e: unknown) {
 export function isGoneError(e: unknown) {
   const msg = (e as { message?: string })?.message ?? '';
   return msg.includes('ALREADY_SOLD') || msg.includes('DREAM_NOT_FOUND');
+}
+
+/** 보상 결과 → 토스트 문구 (보여줄 게 없으면 null) */
+export function rewardMessage(reward: Reward, what: string) {
+  if (reward.amount > 0) {
+    const cap = reward.cap && reward.cap < 1000 ? ` · 오늘 ${reward.today}/${reward.cap}` : '';
+    return `💰 ${what} +${formatCoins(reward.amount)} 코인${cap}`;
+  }
+  switch (reward.reason) {
+    case 'guest':
+      return `👀 게스트는 ${what} 코인을 못 받아요. 가입하면 받을 수 있어요!`;
+    case 'daily_cap':
+      return `오늘 ${what} 보상은 다 받았어요. 내일 또 만나요 🌙`;
+    case 'too_short':
+      return '꿈 내용이 10자 이상이면 +100만 코인을 받아요';
+    default:
+      return null;
+  }
 }

@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
-import { HONESTY } from '../lib/dreamMeta';
+import { HONESTY, REVIEW_VERDICTS } from '../lib/dreamMeta';
 import { formatCoins, timeAgo } from '../lib/format';
-import type { Dream } from '../lib/types';
+import type { Dream, Verdict } from '../lib/types';
 import { PASTELS } from './Backdrops';
 
 interface Props {
@@ -14,7 +14,9 @@ interface Props {
   poofing: boolean;
   fresh: boolean;
   highlighted: boolean;
+  myVote?: Verdict;
   onBuy: (d: Dream) => void;
+  onVote: (d: Dream, v: Verdict) => void;
 }
 
 const POOFS = ['뿅! 증발', '낚아챔!', '슝~ 사라짐'];
@@ -31,7 +33,7 @@ const BUBBLES = Array.from({ length: 22 }, (_, i) => {
   } as CSSProperties;
 });
 
-export default function DreamCard({ dream, index, isMine, guest, vanishing, poofing, fresh, highlighted, onBuy }: Props) {
+export default function DreamCard({ dream, index, isMine, guest, vanishing, poofing, fresh, highlighted, myVote, onBuy, onVote }: Props) {
   const [open, setOpen] = useState(false);
   const [poof] = useState(() => POOFS[Math.floor(Math.random() * POOFS.length)]);
   const honesty = HONESTY[dream.honesty];
@@ -46,6 +48,11 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, poof
           <span className="badge" style={{ background: honesty.tint, animationDelay: `${(index % 5) * 0.7}s` }}>
             {honesty.emoji} {honesty.label}
           </span>
+          {dream.generation > 1 && (
+            <span className="badge resale" title={`원래 ${dream.original_seller_nickname ?? '누군가'}님의 꿈`}>
+              🔁 {dream.generation - 1}번 되판 꿈
+            </span>
+          )}
         </div>
         <h3>{dream.title}</h3>
         {dream.content && (
@@ -54,9 +61,31 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, poof
             <small>{open ? '접기 ▴' : '펼쳐 읽기 ▾'}</small>
           </button>
         )}
+        {dream.review && (
+          <p className="card-review" style={{ background: REVIEW_VERDICTS[dream.review.verdict].tint }}>
+            <b>
+              {REVIEW_VERDICTS[dream.review.verdict].emoji} {REVIEW_VERDICTS[dream.review.verdict].label}
+            </b>
+            “{dream.review.body}” <span>— {dream.review.user_nickname}</span>
+          </p>
+        )}
+        <div className="votes" aria-label="꿈 감정 투표">
+          {(['real', 'fake'] as const).map((v) => (
+            <button
+              key={v}
+              className={myVote === v ? 'on' : ''}
+              disabled={isMine || vanishing}
+              onClick={() => onVote(dream, v)}
+              title={isMine ? '내 꿈에는 투표할 수 없어요' : '감정하면 +10만 코인'}
+            >
+              {v === 'real' ? '😇 진짜 같다' : '🤥 지어냈다'} <b>{v === 'real' ? dream.votes_real : dream.votes_fake}</b>
+            </button>
+          ))}
+        </div>
         <div className="card-foot">
           <span className="who">
             {dream.seller_nickname}
+            {dream.generation > 1 && dream.original_seller_nickname && ` · 원조 ${dream.original_seller_nickname}`}
             <br />
             <span>{timeAgo(dream.created_at)}</span>
           </span>

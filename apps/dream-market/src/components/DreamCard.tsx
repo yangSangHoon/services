@@ -9,8 +9,6 @@ interface Props {
   dream: Dream;
   index: number;
   isMine: boolean;
-  /** 내가 산 꿈 → '내가 산 꿈' 표시 */
-  owned: boolean;
   guest: boolean;
   vanishing: boolean;
   /** 방금 팔려서 방울·말풍선 연출 중 */
@@ -38,7 +36,7 @@ const BUBBLES = Array.from({ length: 22 }, (_, i) => {
   } as CSSProperties;
 });
 
-export default function DreamCard({ dream, index, isMine, owned, guest, vanishing, poofing, fresh, highlighted, myVote, onBuy, onVote, onUser }: Props) {
+export default function DreamCard({ dream, index, isMine, guest, vanishing, poofing, fresh, highlighted, myVote, onBuy, onVote, onUser }: Props) {
   const [open, setOpen] = useState(false);
   const [poof] = useState(() => POOFS[Math.floor(Math.random() * POOFS.length)]);
   const honesty = HONESTY[dream.honesty];
@@ -101,9 +99,7 @@ export default function DreamCard({ dream, index, isMine, owned, guest, vanishin
             <br />
             <span>{timeAgo(dream.created_at)}</span>
           </span>
-          {owned ? (
-            <span className="buy-owned">🫙 내가 산 꿈</span>
-          ) : sold ? (
+          {sold ? (
             <span className="buy-sold">💨 {dream.buyer_nickname ?? '누군가'}님이 가져감</span>
           ) : isMine ? (
             <span className="buy-mine">내 꿈 · {free ? '무료' : price}</span>

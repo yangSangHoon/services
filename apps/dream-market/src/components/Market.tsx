@@ -226,7 +226,6 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
               dream={d}
               index={i}
               isMine={d.seller_id === profile.id}
-              owned={d.buyer_id === profile.id}
               guest={guest}
               vanishing={vanishing.has(d.id)}
               poofing={poofing.has(d.id)}

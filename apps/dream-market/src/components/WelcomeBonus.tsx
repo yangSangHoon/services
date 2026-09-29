@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { claimWelcomeBonus } from '../lib/api';
 import { friendlyError } from '../lib/format';
 import { toast } from '../lib/toast';
-import { PASTELS, Stars } from './Backdrops';
+import { Burst, CoinRain, Stars } from './Backdrops';
 
 type Phase = 'idle' | 'burst' | 'done';
 const BONUS = 100_000_000;
@@ -15,8 +15,6 @@ export default function WelcomeBonus({ onDone }: { onDone: (coins: number) => vo
   const total = useRef(0);
   const raf = useRef(0);
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
-
-  const burst = useMemo(() => (phase === 'idle' ? null : makeBurst()), [phase === 'idle']); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tap = async () => {
     if (phase !== 'idle') return;
@@ -43,7 +41,7 @@ export default function WelcomeBonus({ onDone }: { onDone: (coins: number) => vo
   return (
     <div className="dawn reveal">
       <Stars />
-      <div className="sky">{burst?.rain}</div>
+      {phase !== 'idle' && <CoinRain />}
       <div className="reveal-inner">
         <span className="chip-glass" style={{ color: '#fff' }}>
           ✦ 첫 계시 이벤트
@@ -51,7 +49,7 @@ export default function WelcomeBonus({ onDone }: { onDone: (coins: number) => vo
         <h2>{phase === 'done' ? '계시가 내려왔어요!' : '수정구슬이 당신을\n부르고 있어요'}</h2>
         <div className="spacer" />
         <div className="orb-wrap">
-          <div className="burst">{burst?.particles}</div>
+          {phase !== 'idle' && <Burst />}
           <button className={`orb ${phase === 'burst' ? 'popped' : phase === 'done' ? 'glow' : ''}`} onClick={tap} aria-label="수정구슬">
             <span>✨</span>
           </button>
@@ -77,44 +75,4 @@ export default function WelcomeBonus({ onDone }: { onDone: (coins: number) => vo
       </div>
     </div>
   );
-}
-
-function makeBurst() {
-  const particles = Array.from({ length: 70 }, (_, i) => {
-    const a = Math.random() * Math.PI * 2;
-    const d = 110 + Math.random() * 260;
-    const s = 8 + Math.random() * 14;
-    const star = i % 3 === 0;
-    const style = {
-      left: -s / 2,
-      top: -s / 2,
-      width: s,
-      height: s,
-      borderRadius: star ? 0 : '50%',
-      background: star ? '#fff' : PASTELS[i % PASTELS.length],
-      '--dx': `${Math.cos(a) * d}px`,
-      '--dy': `${Math.sin(a) * d + 40}px`,
-      '--r': `${Math.random() * 540 - 270}deg`,
-      animation: `dcBurst ${1 + Math.random()}s cubic-bezier(.1,.7,.3,1) ${Math.random() * 0.15}s both`,
-    } as CSSProperties;
-    return <i key={i} className={star ? 'sparkle' : ''} style={style} />;
-  });
-  const rings = [0, 1, 2].map((k) => <i key={`r${k}`} className="ring" style={{ animationDelay: `${k * 0.18}s` }} />);
-  const rain = Array.from({ length: 34 }, (_, i) => {
-    const s = 18 + Math.random() * 16;
-    const style = {
-      left: `${Math.random() * 100}%`,
-      width: s,
-      height: s,
-      fontSize: s * 0.45,
-      '--r': `${Math.random() * 720 - 360}deg`,
-      animation: `dcFall ${2 + Math.random() * 1.6}s linear ${Math.random() * 2.2}s both`,
-    } as CSSProperties;
-    return (
-      <span key={i} style={style}>
-        꿈
-      </span>
-    );
-  });
-  return { particles: [...particles, ...rings], rain: <div className="rain">{rain}</div> };
 }

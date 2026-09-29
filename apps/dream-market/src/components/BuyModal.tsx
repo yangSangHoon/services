@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { buyDream } from '../lib/api';
-import { HONESTY, interpret, kindMeta } from '../lib/dreamMeta';
+import { interpret } from '../lib/dreamMeta';
 import { formatCoins, friendlyError, isGoneError } from '../lib/format';
 import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { Dream, Profile } from '../lib/types';
-import { CloseIcon } from './Backdrops';
+import { Burst, CloseIcon } from './Backdrops';
 
 type Step = 'contract' | 'stamp' | 'loading' | 'won';
 const STAMP_MS = 950;
@@ -23,10 +23,10 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [luckShown, setLuckShown] = useState(0);
+  const [showFortune, setShowFortune] = useState(false);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
-  const kind = kindMeta(dream.kind);
   const free = dream.price === 0;
   const after = profile.coins - dream.price;
   const { fortune, luck } = interpret(dream.id);
@@ -52,14 +52,19 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
     }
   };
 
+  // 축하 연출 뒤(700ms) 해몽이 나오고 행운 지수가 0에서 차오름
   const countLuck = () => {
-    let v = 0;
-    const id = window.setInterval(() => {
-      v = Math.min(luck, v + 2);
-      setLuckShown(v);
-      if (v >= luck) clearInterval(id);
-    }, 18);
-    timers.current.push(id);
+    const start = window.setTimeout(() => {
+      setShowFortune(true);
+      let v = 0;
+      const id = window.setInterval(() => {
+        v = Math.min(luck, v + 2);
+        setLuckShown(v);
+        if (v >= luck) clearInterval(id);
+      }, 18);
+      timers.current.push(id);
+    }, 700);
+    timers.current.push(start);
   };
 
   const finish = () => {
@@ -72,13 +77,8 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="grabber" />
         <div className="sheet-head">
-          <div className="tile tile-md" style={{ background: kind.tint }}>
-            {kind.emoji}
-          </div>
           <div>
-            <div className="k">
-              {dream.seller_nickname} · {kind.label} · {HONESTY[dream.honesty].emoji}
-            </div>
+            <div className="k">{dream.seller_nickname}</div>
             <div className="t">{dream.title}</div>
           </div>
           <button className="close-btn" onClick={close} disabled={busy} aria-label="닫기">
@@ -88,12 +88,6 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
 
         {(step === 'contract' || step === 'stamp') && (
           <>
-            {dream.content && (
-              <p className="dream-box">
-                <span className="k">꿈 내용</span>
-                {dream.content}
-              </p>
-            )}
             <div className="contract">
               <div className="h">📜 꿈 매매 계약서</div>
               <div className="r">
@@ -126,7 +120,7 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
             <button className="btn btn-butter btn-block" onClick={buy} disabled={busy}>
               {free ? '🎁 무료로 받기' : '🖋️ 도장 찍고 사기'}
             </button>
-            <p className="foot-note">산 꿈은 시장에서 사라지고, 당신만 볼 수 있어요.</p>
+            <p className="foot-note">산 꿈은 시장에서 사라지고 내 보관함으로 와요.</p>
           </>
         )}
 
@@ -152,12 +146,16 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
 
         {step === 'won' && (
           <div className="won">
-            {dream.content && (
-              <p className="dream-box">
-                <span className="k">🎉 거래 성사 · 이제 당신의 꿈</span>
-                {dream.content}
-              </p>
-            )}
+            <div className="celebrate">
+              <Burst />
+              <span className="party">🎉</span>
+              <div className="t">거래 성사!</div>
+              <div className="s">
+                「{dream.title}」은 이제 {profile.nickname}님의 꿈이에요
+              </div>
+            </div>
+            {showFortune && (
+              <>
             <div className="fortune">
               <span className="i">🔮</span>
               <div>
@@ -177,6 +175,8 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
             <button className="btn btn-lav btn-block" onClick={finish}>
               🫙 꿈 보관함에 넣기
             </button>
+              </>
+            )}
           </div>
         )}
       </div>

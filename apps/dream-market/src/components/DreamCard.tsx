@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { HONESTY, kindMeta } from '../lib/dreamMeta';
+import { HONESTY } from '../lib/dreamMeta';
 import { formatCoins, timeAgo } from '../lib/format';
 import type { Dream } from '../lib/types';
 import { PASTELS } from './Backdrops';
@@ -32,7 +32,6 @@ const BUBBLES = Array.from({ length: 22 }, (_, i) => {
 export default function DreamCard({ dream, index, isMine, guest, vanishing, fresh, highlighted, onBuy }: Props) {
   const [open, setOpen] = useState(false);
   const [poof] = useState(() => POOFS[Math.floor(Math.random() * POOFS.length)]);
-  const kind = kindMeta(dream.kind);
   const honesty = HONESTY[dream.honesty];
   const free = dream.price === 0;
   const price = formatCoins(dream.price);
@@ -41,26 +40,19 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, fres
     <article className={`cell ${fresh ? 'fresh' : ''}`}>
       <div className={`card ${vanishing ? 'vanish' : highlighted ? 'hi' : ''}`}>
         <div className="card-top">
-          <div className="tile" style={{ background: kind.tint, animationDelay: `${(index % 5) * 0.7}s` }}>
-            {kind.emoji}
-          </div>
-          <div className="card-badges">
-            <span className="badge" style={{ background: kind.tint }}>
-              {kind.label}
-            </span>
-            <span className="badge" style={{ background: honesty.tint }}>
-              {honesty.emoji} {honesty.label}
-            </span>
-          </div>
+          <span className="badge" style={{ background: honesty.tint, animationDelay: `${(index % 5) * 0.7}s` }}>
+            {honesty.emoji} {honesty.label}
+          </span>
         </div>
         <div>
           <h3>{dream.title}</h3>
           {dream.teaser && <p className="teaser">“{dream.teaser}”</p>}
         </div>
         {dream.content && (
-          <p className={`card-content ${open ? 'open' : ''}`} onClick={() => setOpen((v) => !v)}>
-            {dream.content}
-          </p>
+          <button className={`card-content ${open ? 'open' : ''}`} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+            <span>{dream.content}</span>
+            <small>{open ? '접기 ▴' : '펼쳐 읽기 ▾'}</small>
+          </button>
         )}
         <div className="card-foot">
           <span className="who">

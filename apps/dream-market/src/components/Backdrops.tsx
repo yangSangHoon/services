@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 
 export const PASTELS = ['#c9b8ff', '#ffc2da', '#bdeedb', '#ffe596', '#bfe0ff', '#ffd6b5'];
 
@@ -94,3 +94,56 @@ export const CloseIcon = () => (
     <path d="m6 6 12 12" />
   </svg>
 );
+
+/** 흰 고리 3겹 + 파스텔 별·방울 70개가 사방으로 터짐 (마운트될 때 한 번) */
+export function Burst() {
+  const parts = useMemo(() => {
+    const particles = Array.from({ length: 70 }, (_, i) => {
+      const a = Math.random() * Math.PI * 2;
+      const d = 110 + Math.random() * 260;
+      const s = 8 + Math.random() * 14;
+      const star = i % 3 === 0;
+      const style = {
+        left: -s / 2,
+        top: -s / 2,
+        width: s,
+        height: s,
+        borderRadius: star ? 0 : '50%',
+        background: star ? '#fff' : PASTELS[i % PASTELS.length],
+        '--dx': `${Math.cos(a) * d}px`,
+        '--dy': `${Math.sin(a) * d + 40}px`,
+        '--r': `${Math.random() * 540 - 270}deg`,
+        animation: `dcBurst ${1 + Math.random()}s cubic-bezier(.1,.7,.3,1) ${Math.random() * 0.15}s both`,
+      } as CSSProperties;
+      return <i key={i} className={star ? 'sparkle' : ''} style={style} />;
+    });
+    const rings = [0, 1, 2].map((k) => <i key={`r${k}`} className="ring" style={{ animationDelay: `${k * 0.18}s` }} />);
+    return [...particles, ...rings];
+  }, []);
+  return <div className="burst">{parts}</div>;
+}
+
+/** 화면 위에서 "꿈" 코인이 쏟아짐 */
+export function CoinRain() {
+  const coins = useMemo(
+    () =>
+      Array.from({ length: 34 }, (_, i) => {
+        const s = 18 + Math.random() * 16;
+        const style = {
+          left: `${Math.random() * 100}%`,
+          width: s,
+          height: s,
+          fontSize: s * 0.45,
+          '--r': `${Math.random() * 720 - 360}deg`,
+          animation: `dcFall ${2 + Math.random() * 1.6}s linear ${Math.random() * 2.2}s both`,
+        } as CSSProperties;
+        return (
+          <span key={i} style={style}>
+            꿈
+          </span>
+        );
+      }),
+    [],
+  );
+  return <div className="sky rain">{coins}</div>;
+}

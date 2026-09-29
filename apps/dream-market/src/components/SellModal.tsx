@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { sellDream } from '../lib/api';
-import { HONESTY, KIND_KEYS, KINDS } from '../lib/dreamMeta';
+import { HONESTY } from '../lib/dreamMeta';
 import { formatCoins, friendlyError } from '../lib/format';
 import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
-import type { DreamKind, Honesty } from '../lib/types';
+import type { Honesty } from '../lib/types';
 import { CloseIcon } from './Backdrops';
 
 const PRICE_STEPS: [string, number][] = [
@@ -17,7 +17,6 @@ const PRICE_STEPS: [string, number][] = [
 const MAX_PRICE = 1_000_000_000_000;
 
 export default function SellModal({ guest, onClose }: { guest: boolean; onClose: () => void }) {
-  const [kind, setKind] = useState<DreamKind | null>(null);
   const [honesty, setHonesty] = useState<Honesty>('real');
   const [title, setTitle] = useState('');
   const [teaser, setTeaser] = useState('');
@@ -35,7 +34,7 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
     setError('');
     setSaving(true);
     try {
-      const dream = await sellDream({ title, teaser, content, kind, honesty, price: finalPrice });
+      const dream = await sellDream({ title, teaser, content, kind: null, honesty, price: finalPrice });
       announce({ type: 'listed', dream });
       toast('🌙 시장에 올라갔어요!', 'success');
       onClose();
@@ -56,25 +55,6 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
           </button>
         </div>
 
-        <div>
-          <div className="label-row">
-            꿈 종류 <span className="hint">· 안 고르면 💭기타</span>
-          </div>
-          <div className="pick-grid">
-            {KIND_KEYS.map((k) => (
-              <button
-                key={k}
-                className={`pick ${kind === k ? 'on' : ''}`}
-                style={kind === k ? { background: KINDS[k].tint } : undefined}
-                onClick={() => setKind((cur) => (cur === k ? null : k))}
-              >
-                <span>{KINDS[k].emoji}</span>
-                {KINDS[k].label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <label className="field">
           제목
           <input className="input" value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="예) 용이 물속에서 나타남" />
@@ -84,7 +64,7 @@ export default function SellModal({ guest, onClose }: { guest: boolean; onClose:
           <input className="input" value={teaser} maxLength={80} onChange={(e) => setTeaser(e.target.value)} placeholder="예) 근데 그 용이…" />
         </label>
         <label className="field">
-          꿈 내용 <span className="hint">시장에서 누구나 읽을 수 있어요</span>
+          꿈 내용 <span className="hint">시장에서 누구나 볼 수 있어요. 카드에는 4줄까지 보여요</span>
           <textarea className="input" value={content} maxLength={2000} onChange={(e) => setContent(e.target.value)} placeholder="어젯밤 꿈을 자세히 적어주세요" />
         </label>
 

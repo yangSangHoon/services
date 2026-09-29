@@ -1,7 +1,7 @@
 import { signOut } from '@lab/core';
 import { useCallback, useEffect, useState } from 'react';
 import { fetchMyDreams, withdrawDream } from '../lib/api';
-import { interpret, kindMeta } from '../lib/dreamMeta';
+import { interpret } from '../lib/dreamMeta';
 import { formatCoins, friendlyError } from '../lib/format';
 import { announce, onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
@@ -115,14 +115,10 @@ export default function MyDreams({ profile, guest, onSignup }: { profile: Profil
           </div>
         ) : (
           list.map((d) => {
-            const kind = kindMeta(d.kind);
             const { fortune, luck } = interpret(d.id);
             return (
               <article key={d.id} className="owned">
                 <div className="owned-head">
-                  <div className="tile tile-sm" style={{ background: kind.tint }}>
-                    {kind.emoji}
-                  </div>
                   <div>
                     <div className="owned-title">{d.title}</div>
                     <div className="owned-meta">

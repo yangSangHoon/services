@@ -415,3 +415,17 @@ button.owned-badge { background: #fff; border: 1.5px solid var(--dm-lav); color:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ─── 가이드 v2: 펼쳐 읽기 · 거래 성사 */
+button.card-content { border: 0; width: 100%; text-align: left; display: flex; flex-direction: column; gap: 6px; color: var(--dm-ink); overflow: visible; -webkit-line-clamp: unset; }
+button.card-content:hover { background: var(--dm-lav-50); }
+button.card-content span { font-size: 14px; line-height: 1.65; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; white-space: pre-wrap; }
+button.card-content.open span { -webkit-line-clamp: unset; }
+button.card-content small { font-size: 12px; color: var(--dm-lav-deep); font-family: var(--dm-font-display); }
+.card-top .badge { animation: dcBob 4s ease-in-out infinite; }
+.celebrate { position: relative; padding: 28px 18px 22px; border-radius: 24px; background: var(--dm-dawn); overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.celebrate .burst { top: 44%; }
+.celebrate .party { position: relative; font-size: 52px; animation: dcPop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) reverse both; }
+.celebrate .t { position: relative; font-family: var(--dm-font-display); font-size: 30px; color: #fff; text-shadow: 0 3px 0 rgba(111, 91, 214, 0.35); animation: dcCountIn 0.5s 0.1s ease-out both; }
+.celebrate .s { position: relative; font-size: 14px; animation: dcFadeUp 0.5s 0.25s ease-out both; }
+.won .fortune, .won .luck, .won .btn { animation: dcFadeUp 0.5s ease-out both; }

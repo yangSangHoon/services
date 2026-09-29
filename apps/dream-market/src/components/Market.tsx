@@ -1,22 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchMarket } from '../lib/api';
-import { KIND_KEYS, KINDS, kindMeta } from '../lib/dreamMeta';
 import { friendlyError } from '../lib/format';
 import { onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
-import type { Dream, DreamKind, Profile } from '../lib/types';
+import type { Dream, Profile } from '../lib/types';
 import BuyModal from './BuyModal';
 import DreamCard from './DreamCard';
 
 type Sort = 'new' | 'cheap' | 'pricey';
-type Filter = DreamKind | 'none' | 'all';
 const VANISH_MS = 1350;
 
-const CHIPS: { id: Filter; emoji: string; label: string }[] = [
-  { id: 'all', emoji: '✨', label: '전체' },
-  ...KIND_KEYS.map((k) => ({ id: k, emoji: KINDS[k].emoji, label: KINDS[k].label })),
-  { id: 'none', emoji: kindMeta(null).emoji, label: kindMeta(null).label },
-];
 
 interface Props {
   profile: Profile;
@@ -30,7 +23,6 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   const [loading, setLoading] = useState(true);
   const [vanishing, setVanishing] = useState<Set<string>>(new Set());
   const [fresh, setFresh] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('new');
   const [highlight, setHighlight] = useState<string | null>(null);
   const [buying, setBuying] = useState<Dream | null>(null);
@@ -80,11 +72,10 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   );
 
   const visible = useMemo(() => {
-    const list = filter === 'all' ? dreams : dreams.filter((d) => (d.kind ?? 'none') === filter);
-    if (sort === 'cheap') return [...list].sort((a, b) => a.price - b.price);
-    if (sort === 'pricey') return [...list].sort((a, b) => b.price - a.price);
-    return list;
-  }, [dreams, filter, sort]);
+    if (sort === 'cheap') return [...dreams].sort((a, b) => a.price - b.price);
+    if (sort === 'pricey') return [...dreams].sort((a, b) => b.price - a.price);
+    return dreams;
+  }, [dreams, sort]);
 
   const open = (d: Dream) => {
     if (guest && d.price > 0) {
@@ -99,7 +90,6 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
     const pool = dreams.filter((d) => d.seller_id !== profile.id && !vanishing.has(d.id) && (!guest || d.price === 0));
     if (!pool.length) return toast('뽑을 꿈이 없어요 😴');
     const d = pool[Math.floor(Math.random() * pool.length)];
-    setFilter('all');
     setHighlight(d.id);
     setTimeout(() => open(d), 900);
   };
@@ -112,7 +102,7 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
         <div>
           <div className="kicker">✦ 오늘 밤 올라온 꿈</div>
           <h1>
-            시장에 뜬 꿈 <em>{Math.max(0, live)}</em>개
+            판매 중인 꿈 <em>{Math.max(0, live)}</em>개
           </h1>
         </div>
         <button className="btn btn-gacha" onClick={drawRandom}>
@@ -120,14 +110,6 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
         </button>
       </div>
 
-      <div className="chips">
-        {CHIPS.map((c) => (
-          <button key={c.id} className={`chip ${filter === c.id ? 'on' : ''}`} onClick={() => setFilter(c.id)}>
-            <span>{c.emoji}</span>
-            {c.label}
-          </button>
-        ))}
-      </div>
       <div className="sort-row">
         <select className="sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="정렬">
           <option value="new">🕐 최신순</option>
@@ -144,8 +126,8 @@ export default function Market({ profile, guest, onCoins, onSignup }: Props) {
       ) : visible.length === 0 ? (
         <div className="empty">
           <div className="emoji">🌫️</div>
-          <p className="title">{dreams.length === 0 ? '아직 올라온 꿈이 없어요' : '이 종류 꿈은 다 팔렸어요'}</p>
-          <p className="sub">{dreams.length === 0 ? '첫 번째 꿈 장수가 되어보세요!' : '오늘 밤 누군가 꾸면 다시 올라와요.'}</p>
+          <p className="title">시장에 남은 꿈이 없어요</p>
+          <p className="sub">오늘 밤 누군가 꾸면 다시 올라와요. 먼저 하나 올려볼까요?</p>
         </div>
       ) : (
         <div className="grid">

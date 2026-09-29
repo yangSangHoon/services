@@ -9,7 +9,7 @@ interface Props {
   dream: Dream;
   index: number;
   isMine: boolean;
-  /** 내가 산 꿈 → 금색 테두리 */
+  /** 내가 산 꿈 → '내가 산 꿈' 표시 */
   owned: boolean;
   guest: boolean;
   vanishing: boolean;
@@ -48,7 +48,7 @@ export default function DreamCard({ dream, index, isMine, owned, guest, vanishin
 
   return (
     <article className={`cell ${fresh ? 'fresh' : ''}`}>
-      <div className={`card ${owned ? 'gold-frame owned-card' : ''} ${vanishing ? 'vanish' : sold ? 'sold' : highlighted ? 'hi' : ''}`}>
+      <div className={`card ${vanishing ? 'vanish' : sold ? 'sold' : highlighted ? 'hi' : ''}`}>
         <div className="card-top">
           <span className="badge" style={{ background: honesty.tint, animationDelay: `${(index % 5) * 0.7}s` }}>
             {honesty.emoji} {honesty.label}

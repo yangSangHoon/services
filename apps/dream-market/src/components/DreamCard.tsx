@@ -1,5 +1,5 @@
 import { HONESTY, KINDS } from '../lib/dreamMeta';
-import { formatCoins, timeAgo } from '../lib/format';
+import { formatPrice, timeAgo } from '../lib/format';
 import type { Dream } from '../lib/types';
 
 interface Props {
@@ -34,8 +34,8 @@ export default function DreamCard({ dream, index, isMine, vanishing, onBuy }: Pr
         <span className="muted small">
           {dream.seller_nickname} · {timeAgo(dream.created_at)}
         </span>
-        <button className="btn-buy" disabled={isMine || vanishing} onClick={() => onBuy(dream)}>
-          {isMine ? '내 꿈' : <>🪙 {formatCoins(dream.price)}</>}
+        <button className={`btn-buy ${dream.price === 0 ? 'free' : ''}`} disabled={isMine || vanishing} onClick={() => onBuy(dream)}>
+          {isMine ? '내 꿈' : formatPrice(dream.price)}
         </button>
       </footer>
     </article>

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
+import { signOut } from '@lab/core';
 import { fetchMyDreams, withdrawDream } from '../lib/api';
 import { interpret, KINDS } from '../lib/dreamMeta';
-import { formatCoins, friendlyError, timeAgo } from '../lib/format';
+import { formatCoins, formatPrice, friendlyError, timeAgo } from '../lib/format';
 import { announce, onMarket } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { OwnedDream, Profile } from '../lib/types';
 
 type Section = 'bought' | 'selling' | 'sold';
 
-export default function MyDreams({ profile }: { profile: Profile }) {
+export default function MyDreams({ profile, guest }: { profile: Profile; guest: boolean }) {
   const [dreams, setDreams] = useState<OwnedDream[] | null>(null);
   const [section, setSection] = useState<Section>('bought');
 
@@ -84,9 +85,12 @@ export default function MyDreams({ profile }: { profile: Profile }) {
                 <div>
                   <h3>{d.title}</h3>
                   <p className="muted small">
-                    {section === 'bought' && `${d.seller_nickname}에게서 구매 · 🪙 ${formatCoins(d.price)}`}
-                    {section === 'selling' && `🪙 ${formatCoins(d.price)} · ${timeAgo(d.created_at)} 등록`}
-                    {section === 'sold' && `${d.buyer_nickname ?? '누군가'}님이 🪙 ${formatCoins(d.price)}에 사갔어요`}
+                    {section === 'bought' && `${d.seller_nickname}에게서 · ${formatPrice(d.price)}`}
+                    {section === 'selling' && `${formatPrice(d.price)} · ${timeAgo(d.created_at)} 등록`}
+                    {section === 'sold' &&
+                      (d.price === 0
+                        ? `${d.buyer_nickname ?? '누군가'}님에게 무료로 나눴어요 🎁`
+                        : `${d.buyer_nickname ?? '누군가'}님이 🪙 ${formatCoins(d.price)}에 사갔어요`)}
                   </p>
                 </div>
                 {section === 'selling' && (
@@ -101,6 +105,10 @@ export default function MyDreams({ profile }: { profile: Profile }) {
           ))}
         </ul>
       )}
+
+      <button className="btn-ghost signout" onClick={() => signOut()}>
+        {guest ? '게스트 나가기' : '로그아웃'}
+      </button>
     </section>
   );
 }

@@ -13,15 +13,18 @@ interface Props {
   dream: Dream;
   profile: Profile;
   onClose: () => void;
+  guest: boolean;
   onBought: (coins: number) => void;
+  onSignup: () => void;
 }
 
-export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
+export default function BuyModal({ dream, profile, guest, onClose, onBought, onSignup }: Props) {
   const [step, setStep] = useState<Step>('contract');
   const [agreed, setAgreed] = useState(false);
   const [content, setContent] = useState('');
   const typed = useTypewriter(content);
   const kind = KINDS[dream.kind];
+  const free = dream.price === 0;
   const canAfford = profile.coins >= dream.price;
   const { fortune, luck } = interpret(dream.id);
 
@@ -53,7 +56,7 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         {step === 'contract' && (
           <>
-            <p className="eyebrow">📜 꿈 매매 계약서</p>
+            <p className="eyebrow">{free ? '🎁 무료 나눔 꿈' : '📜 꿈 매매 계약서'}</p>
             <div className="contract-head">
               <span className="kind-emoji big">{kind.emoji}</span>
               <div>
@@ -61,6 +64,9 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
                 <p className="muted small">판매자 {dream.seller_nickname}</p>
               </div>
             </div>
+            {free ? (
+              <p className="receipt muted small">공짜 꿈이에요. 감사 인사는 마음속으로 🙏</p>
+            ) : (
             <dl className="receipt">
               <div>
                 <dt>꿈 가격</dt>
@@ -77,6 +83,10 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
                 </dd>
               </div>
             </dl>
+            )}
+            {guest && !canAfford && (
+              <p className="guest-note">👀 게스트는 코인이 없어서 무료 꿈만 받을 수 있어요. 가입하면 바로 1억 코인!</p>
+            )}
             <label className="agree">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
               <span>이 꿈이 지어낸 것일 수 있으며, 환불은 꿈에서만 가능함에 동의합니다.</span>
@@ -85,9 +95,15 @@ export default function BuyModal({ dream, profile, onClose, onBought }: Props) {
               <button className="btn-ghost" onClick={onClose}>
                 안 살래요
               </button>
-              <button className="btn-primary" disabled={!agreed || !canAfford} onClick={buy}>
-                꿈 사기
-              </button>
+              {guest && !canAfford ? (
+                <button className="btn-primary" onClick={onSignup}>
+                  🎁 가입하고 1억 받기
+                </button>
+              ) : (
+                <button className="btn-primary" disabled={!agreed || !canAfford} onClick={buy}>
+                  {free ? '무료로 받기' : '꿈 사기'}
+                </button>
+              )}
             </div>
           </>
         )}

@@ -11,7 +11,14 @@ import DreamCard from './DreamCard';
 type Sort = 'new' | 'cheap' | 'pricey';
 const VANISH_MS = 900;
 
-export default function Market({ profile, onCoins }: { profile: Profile; onCoins: (coins: number) => void }) {
+interface Props {
+  profile: Profile;
+  guest: boolean;
+  onCoins: (coins: number) => void;
+  onSignup: () => void;
+}
+
+export default function Market({ profile, guest, onCoins, onSignup }: Props) {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [vanishing, setVanishing] = useState<Set<string>>(new Set());
@@ -55,7 +62,8 @@ export default function Market({ profile, onCoins }: { profile: Profile; onCoins
           setDreams((ds) => (ds.some((d) => d.id === e.dream.id) ? ds : [e.dream, ...ds]));
         } else {
           vanish(e.dreamId);
-          if (e.type === 'sold' && e.buyer !== profile.nickname) toast(`🛒 ${e.buyer}님이 「${e.title}」을(를) 낚아챘어요!`);
+          if (e.type === 'sold' && e.buyer !== profile.nickname)
+            toast(e.price === 0 ? `🎁 ${e.buyer}님이 「${e.title}」을(를) 받아갔어요` : `🛒 ${e.buyer}님이 「${e.title}」을(를) 낚아챘어요!`);
         }
       }),
     [vanish, profile.nickname],
@@ -121,7 +129,19 @@ export default function Market({ profile, onCoins }: { profile: Profile; onCoins
         </div>
       )}
 
-      {buying && <BuyModal dream={buying} profile={profile} onClose={() => setBuying(null)} onBought={onCoins} />}
+      {buying && (
+        <BuyModal
+          dream={buying}
+          profile={profile}
+          guest={guest}
+          onClose={() => setBuying(null)}
+          onBought={onCoins}
+          onSignup={() => {
+            setBuying(null);
+            onSignup();
+          }}
+        />
+      )}
     </section>
   );
 }

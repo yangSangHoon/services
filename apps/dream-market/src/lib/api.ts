@@ -1,4 +1,4 @@
-import { ensureSession, supabase } from '@lab/core';
+import { supabase } from '@lab/core';
 import type { Dream, DreamKind, Honesty, OwnedDream, Profile } from './types';
 
 // 공유 DB라 모든 테이블/함수는 앱 접두사를 붙인다 (supabase/migrations/*_dream_market.sql)
@@ -12,8 +12,7 @@ export async function fetchProfile(userId: string) {
   return data as Profile | null;
 }
 
-export async function enterDreamWorld(nickname: string) {
-  await ensureSession();
+export async function joinDreamWorld(nickname: string) {
   const { data, error } = await supabase.rpc(fn('join'), { p_nickname: nickname });
   if (error) throw error;
   return data as Profile;

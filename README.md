@@ -30,5 +30,5 @@ git push   # main에 push하면 자동 배포
 ## 최초 1회 설정
 
 1. GitHub 저장소 Settings → Pages → Source: **GitHub Actions**
-2. Supabase → Authentication → Sign In / Providers → **Allow anonymous sign-ins** 켜기
+2. Supabase → [Authentication → Sign In / Providers](https://supabase.com/dashboard/project/sugayrefionpkzkzdgss/auth/providers) → **Allow anonymous sign-ins** 켜기(게스트용), **Confirm email** 끄기(기본 메일 발송은 팀원 주소로만 가서 일반 사용자가 인증 메일을 못 받음)
 3. 각 앱의 `supabase/migrations/*.sql`을 SQL Editor에서 실행

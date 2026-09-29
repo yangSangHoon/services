@@ -22,13 +22,17 @@ create table if not exists public.dream_market_dreams (
   teaser          text not null default '' check (char_length(teaser) <= 80),
   kind            text not null check (kind in ('dragon','pig','poop','baby','love','nightmare','dog')),
   honesty         text not null check (honesty in ('real','half','fake')),
-  price           bigint not null check (price between 1 and 1000000000000),
+  price           bigint not null check (price between 0 and 1000000000000), -- 0 = 무료 나눔
   status          text not null default 'on_sale' check (status in ('on_sale','sold')),
   buyer_id        uuid references public.dream_market_profiles(id) on delete set null,
   buyer_nickname  text,
   sold_at         timestamptz,
   created_at      timestamptz not null default now()
 );
+
+-- 이미 테이블이 있던 경우를 위해 가격 제약을 다시 건다 (0 = 무료 나눔 허용)
+alter table public.dream_market_dreams drop constraint if exists dream_market_dreams_price_check;
+alter table public.dream_market_dreams add constraint dream_market_dreams_price_check check (price between 0 and 1000000000000);
 
 create index if not exists dream_market_dreams_on_sale_idx on public.dream_market_dreams (created_at desc) where status = 'on_sale';
 create index if not exists dream_market_dreams_seller_idx on public.dream_market_dreams (seller_id);
@@ -68,7 +72,7 @@ create policy "dream_market_contents for owners" on public.dream_market_contents
 
 -- ─────────────────────────────── RPC
 
--- 닉네임으로 입장 (프로필 생성/닉네임 변경)
+-- 닉네임으로 입장 (프로필 생성/닉네임 변경). 게스트(익명)도 가능
 create or replace function public.dream_market_join(p_nickname text)
 returns public.dream_market_profiles
 language plpgsql security definer set search_path = public
@@ -83,7 +87,7 @@ begin
   return r;
 end $$;
 
--- 첫 계시: 1억 코인 (계정당 1회)
+-- 첫 계시: 1억 코인 (가입 계정당 1회)
 create or replace function public.dream_market_claim_bonus()
 returns bigint
 language plpgsql security definer set search_path = public
@@ -91,6 +95,7 @@ as $$
 declare
   v_coins bigint;
 begin
+  if coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) then raise exception 'SIGNUP_REQUIRED'; end if;
   update dream_market_profiles set coins = coins + 100000000, bonus_claimed = true
   where id = auth.uid() and not bonus_claimed
   returning coins into v_coins;
@@ -98,7 +103,7 @@ begin
   return v_coins;
 end $$;
 
--- 꿈 팔기
+-- 꿈 팔기 (회원: 유료/무료, 게스트: 무료만)
 create or replace function public.dream_market_sell(
   p_title text, p_teaser text, p_content text, p_kind text, p_honesty text, p_price bigint
 )
@@ -111,6 +116,10 @@ declare
 begin
   select nickname into v_nickname from dream_market_profiles where id = auth.uid();
   if v_nickname is null then raise exception 'NO_PROFILE'; end if;
+  -- 게스트는 코인을 벌 수 없으므로 무료 나눔만
+  if coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) and p_price <> 0 then
+    raise exception 'GUEST_FREE_ONLY';
+  end if;
 
   insert into dream_market_dreams (seller_id, seller_nickname, title, teaser, kind, honesty, price)
   values (auth.uid(), v_nickname, trim(p_title), trim(coalesce(p_teaser, '')), p_kind, p_honesty, p_price)

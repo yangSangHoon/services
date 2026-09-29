@@ -28,6 +28,7 @@ npm run new -- <slug> --title "제목" --emoji "🎈" --desc "한 줄 설명"
 - 모든 이름에 `<prefix>` (예: `lunch_roulette_`). 정책 이름에도.
 - `enable row level security` 필수. 기본은 `select`만 정책으로 열고, 쓰기는 소유자 조건(`auth.uid()`) 정책 또는 `security definer set search_path = public` RPC로.
 - 재화/포인트/수량 등 무결성이 중요한 값: 테이블 `insert/update/delete`를 `revoke`하고 RPC에서 `for update` 락 + 조건부 update로 원자적으로 처리. RPC는 `anon`에서 `revoke execute`, `authenticated`에 `grant`.
+- 회원 전용 혜택(코인 지급 등)은 RPC에서 `coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false)`로 게스트를 막는다.
 - 에러는 `raise exception 'UPPER_SNAKE_CODE'`로 던지고 클라이언트에서 코드→친절한 문구로 매핑.
 - 참고 구현: `supabase/migrations/20260929000000_dream_market.sql`
 
@@ -45,7 +46,7 @@ curl -s "https://sugayrefionpkzkzdgss.supabase.co/rest/v1/<prefix><table>?select
 
 ## 5. 구현
 
-- `@lab/core`의 `supabase`, `ensureSession`, `isConfigured` 사용. 테이블/RPC는 `src/db.ts`의 `table()`, `rpc()` 헬퍼로 접근(접두사 자동).
+- `@lab/core`의 `supabase`, `useSession`, `isGuest`, `signUpWithEmail`/`signInWithEmail`/`signInAsGuest`, `isConfigured` 사용. 로그인 UI는 `apps/dream-market/src/components/Auth.tsx` 참고(회원가입·로그인·게스트). 테이블/RPC는 `src/db.ts`의 `table()`, `rpc()` 헬퍼로 접근(접두사 자동).
 - 라우팅이 필요하면 `HashRouter`. 페이지가 적으면 상태 기반 탭으로 충분.
 - localStorage 키, Realtime 채널 이름에 slug를 붙인다.
 - RLS 때문에 다른 사용자에게 안 보이게 된 행의 변화는 `postgres_changes`로 전달되지 않는다. 실시간 알림이 필요하면 broadcast 채널을 쓴다(참고: `apps/dream-market/src/lib/realtime.ts`).

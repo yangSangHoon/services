@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { sellDream } from '../lib/api';
 import { HONESTY, KIND_KEYS, KINDS } from '../lib/dreamMeta';
-import { formatCoins, friendlyError } from '../lib/format';
+import { formatCoins, formatPrice, friendlyError } from '../lib/format';
 import { announce } from '../lib/realtime';
 import { toast } from '../lib/toast';
 import type { DreamKind, Honesty } from '../lib/types';
@@ -9,16 +9,16 @@ import type { DreamKind, Honesty } from '../lib/types';
 const PRICE_STEPS = [1_000, 10_000, 100_000, 1_000_000, 10_000_000];
 const MAX_PRICE = 1_000_000_000_000;
 
-export default function SellModal({ onClose }: { onClose: () => void }) {
+export default function SellModal({ guest, onClose }: { guest: boolean; onClose: () => void }) {
   const [kind, setKind] = useState<DreamKind>('dragon');
   const [honesty, setHonesty] = useState<Honesty>('real');
   const [title, setTitle] = useState('');
   const [teaser, setTeaser] = useState('');
   const [content, setContent] = useState('');
-  const [price, setPrice] = useState(10_000);
+  const [price, setPrice] = useState(guest ? 0 : 10_000);
   const [saving, setSaving] = useState(false);
 
-  const valid = title.trim() && content.trim() && price > 0;
+  const valid = title.trim() && content.trim() && price >= 0;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,17 +93,21 @@ export default function SellModal({ onClose }: { onClose: () => void }) {
 
         <fieldset>
           <legend>가격</legend>
-          <div className="price-display">🪙 {formatCoins(price)}</div>
+          <div className="price-display">{formatPrice(price)}</div>
+          {guest ? (
+            <p className="guest-note">👀 게스트는 코인을 벌 수 없어서 무료 나눔만 가능해요. 가입하면 가격을 매길 수 있어요!</p>
+          ) : (
           <div className="price-steps">
             {PRICE_STEPS.map((s) => (
               <button type="button" key={s} onClick={() => setPrice((p) => Math.min(MAX_PRICE, p + s))}>
                 +{formatCoins(s)}
               </button>
             ))}
-            <button type="button" className="reset" onClick={() => setPrice(1_000)}>
-              초기화
+            <button type="button" className="reset" onClick={() => setPrice(0)}>
+              🎁 무료로
             </button>
           </div>
+          )}
         </fieldset>
 
         <div className="modal-actions">

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    display: flex; align-items: center; gap: 64px; padding: 0 84px;
+    font-family: 'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #22201c;
+    background: #fbf8f3;
+  }
+  .left { flex: 1; }
+  .logo { font-size: 30px; font-weight: 800; margin-bottom: 30px; }
+  h1 { font-size: 84px; line-height: 1.12; letter-spacing: -3px; font-weight: 800; }
+  h1 em { font-style: normal; color: #e8592f; }
+  .url { margin-top: 30px; font-size: 24px; color: #7a746b; }
+  .cards { width: 420px; display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    display: flex; align-items: center; justify-content: space-between; padding: 22px 26px; border-radius: 22px;
+    background: #fff; border-left: 9px solid var(--c); box-shadow: 0 10px 30px rgba(34,32,28,.08);
+    font-size: 30px; font-weight: 700;
+  }
+  .tag { font-size: 22px; padding: 6px 14px; border-radius: 999px; background: var(--s); color: var(--c); }
+  .good { --c: #1f9d63; --s: #e3f6ec; }
+  .bad { --c: #d93a3a; --s: #fde8e6; }
+  .myth { --c: #b7791f; --s: #fdf3dc; }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="logo">🥢 찰떡궁합</div>
+    <h1>이거랑 이거,<br /><em>같이 먹어도 돼?</em></h1>
+    <p class="url">yangsanghoon.github.io/services/food-match</p>
+  </div>
+  <div class="cards">
+    <div class="card good">🍅 + 🫒 <span class="tag">💚 찰떡</span></div>
+    <div class="card bad">🍶 + ⚡ <span class="tag">🚨 주의</span></div>
+    <div class="card myth">🥬 + 🧈 <span class="tag">🤔 속설</span></div>
+  </div>
+</body>
+</html>

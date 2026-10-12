@@ -5,6 +5,7 @@
 | 앱 | 설명 |
 | --- | --- |
 | [🌙 꿈사꿈팔](https://yangsanghoon.github.io/services/dream-market/) | 내 꿈을 팔고 남의 꿈을 사는 시장 |
+| [🥢 찰떡궁합](https://yangsanghoon.github.io/services/food-match/) | 이거랑 이거, 같이 먹어도 돼? 음식 궁합과 속설 판별 |
 
 ## 시작하기
 

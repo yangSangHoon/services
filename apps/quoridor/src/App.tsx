@@ -1,8 +1,8 @@
 import { isConfigured } from '@lab/core';
 import { PopNumber, SwapText, usePresence } from '@lab/core/motion';
 import { track } from '@lab/core/track';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import Board, { type Ghost } from './Board';
+import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
+import Board, { type BoardProps, type Ghost } from './Board';
 import { CARDS, ULT_EACH, WALLS_EACH, apply, distance, drawCard, goalRow, newGame, ultLeft, wallProblem, type Move, type Orient, type Player, type State } from './game';
 import { createRoom, newRoomCode, useRoom } from './online';
 
@@ -12,6 +12,39 @@ const PROBLEM = {
   overlap: '다른 벽과 겹쳐요',
   trap: '길을 완전히 막을 수는 없어요',
 } as const;
+
+const Board3D = lazy(() => import('./Board3D'));
+
+/** WebGL을 못 쓰는 기기면 평면(SVG) 판으로 */
+class Fallback extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+const webgl = (() => {
+  try {
+    return !!document.createElement('canvas').getContext('webgl2');
+  } catch {
+    return false;
+  }
+})();
+
+function GameBoard(props: BoardProps) {
+  const flat = <Board {...props} />;
+  if (!webgl) return flat;
+  return (
+    <Fallback fallback={flat}>
+      <Suspense fallback={flat}>
+        <Board3D {...props} />
+      </Suspense>
+    </Fallback>
+  );
+}
 
 const buzz = (ms: number | number[] = 8) => navigator.vibrate?.(ms);
 
@@ -242,7 +275,7 @@ function Match({
       <PlayerCard state={state} p={top} seat={seats[top]} />
 
       <div className="board-wrap">
-        <Board
+        <GameBoard
           state={state}
           flip={flip}
           mode={boardMode === 'wall-none' ? 'move' : boardMode}

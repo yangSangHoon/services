@@ -206,3 +206,7 @@ h1, h2, p, ol { margin: 0; }
   .flip-inner { animation: none; transform: rotateY(180deg); }
   .pawn, .wall.is-new, .target, .target.is-ult, .target.is-curse, .card-panel, .card-verdict, .pawn.is-ult .pawn-body, .pawn.is-turn .pawn-ring, .pawn.is-winner .pawn-body, .turn-toast { animation: none; transition: none; }
 }
+
+/* 2.5D 판 (React Three Fiber) */
+.board3d { aspect-ratio: 1.1; width: min(100%, 68dvh); }
+.board3d canvas { touch-action: none; }

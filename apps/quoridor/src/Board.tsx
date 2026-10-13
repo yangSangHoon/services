@@ -9,7 +9,7 @@ export const SIZE = N * CELL + (N - 1) * GAP;
 
 export type Ghost = { o: Orient; r: number; c: number; ok: boolean } | null;
 
-type Props = {
+export type BoardProps = {
   state: State;
   /** 1번 플레이어 시점이면 판을 180° 돌려서 내 말이 아래에 오게 */
   flip: boolean;
@@ -20,7 +20,7 @@ type Props = {
   onAim: (o: Orient, r: number, c: number) => void;
 };
 
-export default function Board({ state, flip, mode, active, ghost, onCell, onAim }: Props) {
+export default function Board({ state, flip, mode, active, ghost, onCell, onAim }: BoardProps) {
   const svg = useRef<SVGSVGElement>(null);
   const pressed = useRef(false);
 

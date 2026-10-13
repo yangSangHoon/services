@@ -8,7 +8,7 @@ const HARBOR_LABEL = (h: string) => (h === 'any' ? '3:1' : `${RES_EMOJI[h as key
 
 export type Pick = { kind: 'vertex'; ids: number[] } | { kind: 'edge'; ids: number[] } | { kind: 'hex'; ids: number[] } | null;
 
-type Props = {
+export type BoardProps = {
   state: State;
   pick: Pick;
   onPick: (id: number) => void;
@@ -27,7 +27,7 @@ const harborPos = (e: number) => {
   return { x: x + (x / d) * 0.55, y: y + (y / d) * 0.55 };
 };
 
-export default function Board({ state: s, pick, onPick }: Props) {
+export default function Board({ state: s, pick, onPick }: BoardProps) {
   const lastDice = s.dice ? s.dice[0] + s.dice[1] : 0;
 
   return (

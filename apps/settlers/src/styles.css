@@ -222,3 +222,7 @@ ul { list-style: none; }
 @media (prefers-reduced-motion: reduce) {
   .mini, .road, .building, .dice, .pick-mark, .pick-hex, .hex.is-hot polygon { animation: none; }
 }
+
+/* 2.5D 지도 (React Three Fiber) */
+.board3d { aspect-ratio: 11 / 9.75; }
+.board3d canvas { touch-action: manipulation; }

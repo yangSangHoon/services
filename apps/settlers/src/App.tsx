@@ -1,8 +1,8 @@
 import { isConfigured } from '@lab/core';
 import { PopNumber, SwapText, usePresence } from '@lab/core/motion';
 import { track } from '@lab/core/track';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import Board, { COLORS, type Pick } from './Board';
+import { Component, Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react';
+import Board, { COLORS, type BoardProps, type Pick } from './Board';
 import { MAP } from './map';
 import {
   COST,
@@ -38,6 +38,39 @@ const go = (hash: string) => {
 function readCode() {
   const m = /^r=([A-Z0-9]{4,10})$/.exec(location.hash.slice(1));
   return m ? m[1] : null;
+}
+
+const Board3D = lazy(() => import('./Board3D'));
+
+/** WebGL을 못 쓰는 기기면 평면(SVG) 지도로 */
+class Fallback extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+const webgl = (() => {
+  try {
+    return !!document.createElement('canvas').getContext('webgl2');
+  } catch {
+    return false;
+  }
+})();
+
+function GameBoard(props: BoardProps) {
+  const flat = <Board {...props} />;
+  if (!webgl) return flat;
+  return (
+    <Fallback fallback={flat}>
+      <Suspense fallback={flat}>
+        <Board3D {...props} />
+      </Suspense>
+    </Fallback>
+  );
 }
 
 export default function App() {
@@ -396,7 +429,7 @@ function GameView({ net, room, game: s }: { net: Net; room: Room; game: State })
       <Players s={s} room={room} me={me} online={net.online} />
 
       <div className="board-wrap">
-        <Board state={s} pick={pick} onPick={onPick} />
+        <GameBoard state={s} pick={pick} onPick={onPick} />
         {s.dice && <Dice key={`${s.turn}-${s.dice.join('')}`} d={s.dice} />}
       </div>
 

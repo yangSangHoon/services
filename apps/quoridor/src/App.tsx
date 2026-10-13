@@ -3,7 +3,7 @@ import { PopNumber, SwapText, usePresence } from '@lab/core/motion';
 import { track } from '@lab/core/track';
 import { useEffect, useState, type ReactNode } from 'react';
 import Board, { type Ghost } from './Board';
-import { WALLS_EACH, apply, distance, goalRow, newGame, wallProblem, type Move, type Orient, type Player, type State } from './game';
+import { ULT_EACH, WALLS_EACH, apply, distance, goalRow, newGame, ultLeft, ultMoves, wallProblem, type Move, type Orient, type Player, type State } from './game';
 import { createRoom, newRoomCode, useRoom } from './online';
 
 const COLOR_NAME = ['파랑', '주황'] as const;
@@ -109,6 +109,9 @@ function Rules() {
       <li>
         <b>뛰어넘기</b> 말끼리 마주 보면 넘어갈 수 있어요. 뒤가 막혀 있으면 옆 대각선으로.
       </li>
+      <li>
+        <b>⚡ 필살기</b> 한 판에 {ULT_EACH}번, 바로 옆을 막은 벽을 넘어 한 칸 이동할 수 있어요.
+      </li>
     </ol>
   );
 }
@@ -153,7 +156,7 @@ function Match({
   onRematch: () => void;
   onExit: () => void;
 }) {
-  const [mode, setMode] = useState<'move' | 'wall'>('move');
+  const [mode, setMode] = useState<'move' | 'wall' | 'ult'>('move');
   const [ghost, setGhost] = useState<Ghost>(null);
   const [hint, setHint] = useState('');
 
@@ -177,6 +180,7 @@ function Match({
   }, [state.moves, state.turn, state.winner]);
 
   const left = state.left[state.turn];
+  const ult = ultLeft(state);
   const bottom: Player = flip ? 1 : 0;
   const top = (1 - bottom) as Player;
 
@@ -212,7 +216,7 @@ function Match({
           mode={mode}
           active={canPlay}
           ghost={canPlay && mode === 'wall' ? ghost : null}
-          onCell={(r, c) => onMove({ t: 'move', r, c }) && buzz()}
+          onCell={(r, c) => onMove(mode === 'ult' ? { t: 'move', r, c, ult: true } : { t: 'move', r, c }) && buzz(mode === 'ult' ? 40 : 8)}
           onAim={aim}
         />
       </div>
@@ -222,7 +226,7 @@ function Match({
       <div className={`controls ${canPlay ? '' : 'is-waiting'}`}>
         <div className="seg" role="tablist" aria-label="할 일">
           <button role="tab" aria-selected={mode === 'move'} className={mode === 'move' ? 'is-on' : ''} onClick={() => setMode('move')} disabled={!canPlay}>
-            🚶 말 옮기기
+            🚶 이동
           </button>
           <button
             role="tab"
@@ -234,9 +238,26 @@ function Match({
             }}
             disabled={!canPlay}
           >
-            🧱 벽 세우기 <span className="count">{left}</span>
+            🧱 벽 <span className="count">{left}</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'ult'}
+            className={`ult-tab ${mode === 'ult' ? 'is-on' : ''}`}
+            onClick={() => {
+              setMode('ult');
+              setHint(ultMoves(state).length ? '넘어갈 칸을 눌러 보세요' : '지금은 바로 옆에 넘을 벽이 없어요');
+            }}
+            disabled={!canPlay || ult <= 0}
+          >
+            ⚡ 필살기 <span className="count">{ult}</span>
           </button>
         </div>
+        {mode === 'ult' && canPlay && (
+          <p className="hint ult-hint">
+            <SwapText text={hint || ' '} />
+          </p>
+        )}
         {mode === 'wall' && canPlay && (
           <div className="wall-actions">
             <p className={`hint ${ghost && !ghost.ok ? 'is-bad' : ''}`}>
@@ -290,6 +311,9 @@ function PlayerCard({ state, p, seat }: { state: State; p: Player; seat: Seat })
       <b className="name">{seat.name}</b>
       <span className="meta">
         목표까지 <PopNumber value={dist} />칸
+      </span>
+      <span className={`ult-mark ${ultLeft(state, p) > 0 ? 'on' : ''}`} aria-label={`필살기 ${ultLeft(state, p)}번 남음`}>
+        ⚡
       </span>
       <span className="pips" aria-label={`남은 벽 ${state.left[p]}개`}>
         {Array.from({ length: WALLS_EACH }, (_, i) => (

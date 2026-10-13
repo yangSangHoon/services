@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
-import { N, goalRow, parseWall, pawnMoves, type Cell, type Orient, type Player, type State } from './game';
+import { N, goalRow, parseWall, pawnMoves, ultMoves, type Cell, type Orient, type Player, type State } from './game';
 
 /** 보드 좌표(viewBox 단위). 칸 10, 홈 2.6 */
 const CELL = 10;
@@ -13,7 +13,7 @@ type Props = {
   state: State;
   /** 1번 플레이어 시점이면 판을 180° 돌려서 내 말이 아래에 오게 */
   flip: boolean;
-  mode: 'move' | 'wall';
+  mode: 'move' | 'wall' | 'ult';
   active: boolean;
   ghost: Ghost;
   onCell: (r: number, c: number) => void;
@@ -59,7 +59,8 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
     onCell(cr(vr), cr(vc));
   };
 
-  const targets: Cell[] = active && mode === 'move' && state.winner === null ? pawnMoves(state) : [];
+  const targets: Cell[] =
+    !active || state.winner !== null ? [] : mode === 'move' ? pawnMoves(state) : mode === 'ult' ? ultMoves(state) : [];
   const last = state.last;
 
   const wallRect = (o: Orient, r: number, c: number) => {
@@ -95,7 +96,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
       )}
 
       {targets.map(([r, c]) => (
-        <circle key={`${r}${c}`} className={`target p${state.turn}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
+        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? 'is-ult' : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
       ))}
 
       {state.walls.map((w) => {
@@ -111,7 +112,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
         return (
           <g
             key={p}
-            className={`pawn p${p} ${state.turn === p && state.winner === null ? 'is-turn' : ''} ${state.winner === p ? 'is-winner' : ''}`}
+            className={`pawn p${p} ${last?.t === 'move' && last.ult && state.turn !== p ? 'is-ult' : ''} ${state.turn === p && state.winner === null ? 'is-turn' : ''} ${state.winner === p ? 'is-winner' : ''}`}
             style={{ transform: `translate(${cr(c) * S + CELL / 2}px, ${cr(r) * S + CELL / 2}px)` }}
           >
             <circle className="pawn-ring" r={4.6} />

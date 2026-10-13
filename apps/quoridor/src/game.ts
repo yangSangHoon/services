@@ -10,12 +10,14 @@
 export type Player = 0 | 1;
 export type Cell = [number, number];
 export type Orient = 'h' | 'v';
-export type Move = { t: 'move'; r: number; c: number } | { t: 'wall'; o: Orient; r: number; c: number };
+export type Move = { t: 'move'; r: number; c: number; ult?: true } | { t: 'wall'; o: Orient; r: number; c: number };
 
 export type State = {
   pawns: [Cell, Cell];
   walls: string[];
   left: [number, number];
+  /** 남은 필살기(벽 넘기) 횟수. 예전 저장본엔 없을 수 있다 */
+  ult?: [number, number];
   turn: Player;
   /** 이번 판에 먼저 둔 사람 (한 판 더 할 때 번갈아) */
   first: Player;
@@ -26,6 +28,7 @@ export type State = {
 
 export const N = 9;
 export const WALLS_EACH = 10;
+export const ULT_EACH = 1;
 const GOAL: [number, number] = [0, N - 1];
 const DIRS: Cell[] = [
   [-1, 0],
@@ -42,6 +45,7 @@ export function newGame(first: Player = 0): State {
     ],
     walls: [],
     left: [WALLS_EACH, WALLS_EACH],
+    ult: [ULT_EACH, ULT_EACH],
     turn: first,
     first,
     winner: null,
@@ -86,6 +90,24 @@ export function pawnMoves(s: State, p: Player = s.turn): Cell[] {
     for (const [pr, pc] of dr ? DIRS.slice(2) : DIRS.slice(0, 2)) {
       if (canStep(k, or, oc, pr, pc)) out.push([or + pr, oc + pc]);
     }
+  }
+  return out;
+}
+
+export const ultLeft = (s: State, p: Player = s.turn) => (s.ult ?? [ULT_EACH, ULT_EACH])[p];
+
+/** 필살기: 바로 옆 칸 중 벽에 막힌 곳으로 벽을 넘어 한 칸 이동 */
+export function ultMoves(s: State, p: Player = s.turn): Cell[] {
+  if (ultLeft(s, p) <= 0) return [];
+  const k = keys(s.walls);
+  const [r, c] = s.pawns[p];
+  const [or, oc] = s.pawns[1 - p];
+  const out: Cell[] = [];
+  for (const [dr, dc] of DIRS) {
+    const nr = r + dr;
+    const nc = c + dc;
+    if (!inside(nr, nc) || !blocked(k, r, c, dr, dc) || (nr === or && nc === oc)) continue;
+    out.push([nr, nc]);
   }
   return out;
 }
@@ -136,7 +158,12 @@ export function apply(s: State, m: Move): State | null {
   const p = s.turn;
   const next: State = { ...s, turn: (1 - p) as Player, moves: s.moves + 1, last: m };
   if (m.t === 'move') {
-    if (!pawnMoves(s, p).some(([r, c]) => r === m.r && c === m.c)) return null;
+    const options = m.ult ? ultMoves(s, p) : pawnMoves(s, p);
+    if (!options.some(([r, c]) => r === m.r && c === m.c)) return null;
+    if (m.ult) {
+      const u = s.ult ?? [ULT_EACH, ULT_EACH];
+      next.ult = p === 0 ? [u[0] - 1, u[1]] : [u[0], u[1] - 1];
+    }
     next.pawns = p === 0 ? [[m.r, m.c], s.pawns[1]] : [s.pawns[0], [m.r, m.c]];
     if (m.r === GOAL[p]) next.winner = p;
   } else {

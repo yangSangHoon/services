@@ -499,6 +499,8 @@ function GameView({ net, room, game: s }: { net: Net; room: Room; game: State })
         ) : null}
       </div>
 
+      <CostGuide hand={me >= 0 ? s.players[me].hand : null} />
+
       {s.offer && myTurn && <MyOffer s={s} onAccept={(w) => act({ t: 'accept', with: w })} onCancel={() => act({ t: 'cancelOffer' })} />}
 
       <Sheet open={sheet === 'trade' && myTurn && s.phase.k === 'main' && !s.offer} onClose={() => setSheet(null)} title="거래">
@@ -594,6 +596,76 @@ function MyHand({ s, me }: { s: State; me: number }) {
 
 const canAfford = (h: Hand, c: Partial<Hand>) => RES.every((r) => h[r] >= (c[r] ?? 0));
 const costText = (c: Partial<Hand>) => RES.flatMap((r) => Array<string>(c[r] ?? 0).fill(RES_EMOJI[r])).join('');
+
+const GUIDE: { key: keyof typeof COST; emoji: string; label: string; note: string }[] = [
+  { key: 'road', emoji: '🛣️', label: '길', note: '마을·길에 이어서' },
+  { key: 'settle', emoji: '🏠', label: '마을', note: '+1점 · 2칸 띄워서' },
+  { key: 'city', emoji: '🏙️', label: '도시', note: '마을을 올림 · 2점' },
+  { key: 'dev', emoji: '🃏', label: '발전 카드', note: '기사·승점 등' },
+];
+const GUIDE_KEY = 'settlers:guide-hidden';
+
+/** 무엇을 지으려면 어떤 자원이 필요한지 늘 보여 주는 카드. 내 손패로 지을 수 있는 건 강조 */
+function CostGuide({ hand }: { hand: Hand | null }) {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(GUIDE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () => {
+    setHidden((v) => {
+      try {
+        localStorage.setItem(GUIDE_KEY, v ? '0' : '1');
+      } catch {
+        /* 저장 못 해도 화면만 바뀌면 됨 */
+      }
+      return !v;
+    });
+  };
+
+  if (hidden)
+    return (
+      <button className="guide-show" onClick={toggle} aria-expanded={false}>
+        📋 건설 비용 보기
+      </button>
+    );
+
+  return (
+    <section className="guide card" aria-label="건설 비용">
+      <header className="guide-head">
+        <b>📋 건설 비용</b>
+        <button className="guide-hide" onClick={toggle} aria-expanded>
+          감추기
+        </button>
+      </header>
+      <ul>
+        {GUIDE.map((g) => {
+          const cost = COST[g.key];
+          const ok = !!hand && canAfford(hand, cost);
+          return (
+            <li key={g.key} className={ok ? 'is-ok' : ''}>
+              <span className="guide-name">
+                {g.emoji} <b>{g.label}</b>
+              </span>
+              <span className="guide-cost">
+                {RES.flatMap((r) =>
+                  Array.from({ length: cost[r] ?? 0 }, (_, k) => (
+                    <i key={`${r}${k}`} className={hand && hand[r] > k ? 'have' : ''} title={RES_NAME[r]}>
+                      {RES_EMOJI[r]}
+                    </i>
+                  )),
+                )}
+              </span>
+              <small>{ok ? '지금 지을 수 있어요' : g.note}</small>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
 
 function BuildRow({ s, me, onTool, onDev }: { s: State; me: number; onTool: (t: Tool) => void; onDev: () => void }) {
   const h = s.players[me].hand;

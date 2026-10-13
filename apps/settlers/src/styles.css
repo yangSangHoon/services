@@ -226,3 +226,20 @@ ul { list-style: none; }
 /* 2.5D 지도 (React Three Fiber) */
 .board3d { aspect-ratio: 11 / 9.75; }
 .board3d canvas { touch-action: manipulation; }
+
+/* 건설 비용 가이드 */
+.guide { padding: 10px 12px 8px; animation: rise-in var(--duration-fast) var(--ease-smooth-out) both; }
+.guide-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+.guide-hide { height: 28px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); }
+.guide ul { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.guide li { display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; border-radius: 10px; background: var(--bg); border: 1.5px solid transparent; transition: border-color var(--duration-fast), background-color var(--duration-fast); }
+.guide li.is-ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)); }
+.guide-name { font-size: 13.5px; }
+.guide-cost { display: flex; flex-wrap: wrap; gap: 1px; font-size: 17px; line-height: 1.2; }
+.guide-cost i { font-style: normal; opacity: 0.35; filter: grayscale(0.6); transition: opacity var(--duration-fast), filter var(--duration-fast); }
+.guide-cost i.have { opacity: 1; filter: none; }
+.guide li small { font-size: 11px; color: var(--muted); }
+.guide li.is-ok small { color: var(--ok); font-weight: 700; }
+.guide-show { align-self: center; height: 32px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--muted); background: var(--surface); border: 1px solid var(--line); }
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .guide { animation: none; } }

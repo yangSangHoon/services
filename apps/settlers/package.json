@@ -1,0 +1,18 @@
+{
+  "name": "@lab/settlers",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "lab": {
+    "title": "개척의 섬",
+    "emoji": "🏝️",
+    "description": "주사위 굴려 자원 모으고 마을 짓기 — 카탄 룰로 친구·봇과 3~4인 대결"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@lab/core": "*"
+  }
+}

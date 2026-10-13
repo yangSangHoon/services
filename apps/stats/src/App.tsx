@@ -42,6 +42,10 @@ const EVENT_LABEL: Record<string, string> = {
   invite: '친구 초대',
   join: '초대받아 입장',
   finish: '한 판 끝',
+  solo: '봇이랑 혼자 시작',
+  room: '친구 방 만들기',
+  start: '게임 시작',
+  offer: '거래 제안',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

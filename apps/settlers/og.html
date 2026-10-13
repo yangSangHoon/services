@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    display: flex; align-items: center; gap: 40px; padding: 0 70px 0 84px;
+    font-family: 'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #26211a;
+    background: radial-gradient(90% 120% at 80% 50%, #fbf6ea, #ece3d0);
+  }
+  .left { flex: 1; }
+  .logo { font-size: 30px; font-weight: 800; margin-bottom: 24px; color: #2f6fa8; }
+  h1 { font-size: 80px; line-height: 1.1; letter-spacing: -3px; font-weight: 900; }
+  h1 em { font-style: normal; color: #e0453f; }
+  .sub { margin-top: 24px; font-size: 29px; color: #847a6c; font-weight: 600; }
+  .chips { margin-top: 30px; display: flex; gap: 12px; font-size: 34px; }
+  .chips span { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 18px; background: #fffcf5; box-shadow: 0 6px 16px rgba(60,40,10,.12); }
+  svg { width: 500px; height: 500px; flex: none; filter: drop-shadow(0 24px 40px rgba(20,60,90,.3)); }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="logo">🏝️ 개척의 섬</div>
+    <h1>자원 모아<br /><em>마을 짓기!</em></h1>
+    <p class="sub">카탄 룰 · 친구·봇과 3~4인 온라인 대결</p>
+    <div class="chips"><span>🌲</span><span>🧱</span><span>🐑</span><span>🌾</span><span>⛰️</span></div>
+  </div>
+  <svg viewBox="-5.3 -5.3 10.6 10.6" id="b"></svg>
+  <script>
+    const C = { wood: '#3f8f4a', brick: '#c8643b', sheep: '#9bd06b', wheat: '#e8c547', ore: '#8f99a8', desert: '#e3d3a6' };
+    const E = { wood: '🌲', brick: '🧱', sheep: '🐑', wheat: '🌾', ore: '⛰️', desert: '🏜️' };
+    const T = ['ore','sheep','wood','wheat','brick','sheep','brick','wheat','wood','desert','wood','ore','wood','ore','wheat','sheep','brick','wheat','sheep'];
+    const N = [10,2,9,12,6,4,10,9,11,0,3,8,8,3,4,5,5,6,11];
+    const pts = (x, y, r) => Array.from({ length: 6 }, (_, i) => { const a = (60 * i - 90) * Math.PI / 180; return `${x + Math.cos(a) * r},${y + Math.sin(a) * r}`; }).join(' ');
+    let h = `<polygon points="${pts(0,0,5.2)}" transform="rotate(30)" fill="#3d8fc4"/>`, k = 0;
+    for (let r = -2; r <= 2; r++) for (let q = -2; q <= 2; q++) {
+      if (Math.abs(q + r) > 2) continue;
+      const x = Math.sqrt(3) * (q + r / 2), y = 1.5 * r, t = T[k], n = N[k++];
+      h += `<polygon points="${pts(x,y,.97)}" fill="${C[t]}" stroke="rgba(255,255,255,.55)" stroke-width=".05"/>`;
+      h += `<text x="${x}" y="${y-.36}" font-size=".5" text-anchor="middle" dominant-baseline="middle">${E[t]}</text>`;
+      if (n) h += `<circle cx="${x}" cy="${y+.28}" r=".34" fill="#fdf6e3"/><text x="${x}" y="${y+.4}" font-size=".32" font-weight="800" text-anchor="middle" fill="${n===6||n===8?'#d23a2a':'#2a2118'}">${n}</text>`;
+    }
+    const house = (x, y, c) => h += `<path transform="translate(${x} ${y})" d="M-0.2 0.18 V-0.06 L0 -0.25 L0.2 -0.06 V0.18 Z" fill="${c}" stroke="#fff" stroke-width=".05"/>`;
+    const road = (x1, y1, x2, y2, c) => h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(0,0,0,.45)" stroke-width=".26" stroke-linecap="round"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width=".17" stroke-linecap="round"/>`;
+    road(0.1, -1.05, 0.75, -1.42, '#e0453f'); house(0, -1, '#e0453f');
+    road(-1.62, 0.6, -1.62, 1.4, '#2f6fe0'); house(-1.73, 0.5, '#2f6fe0');
+    road(1.0, 2.2, 1.6, 2.55, '#f08a1c'); house(0.87, 2, '#f08a1c');
+    house(2.6, -0.5, '#1f9e6a');
+    document.getElementById('b').innerHTML = h;
+  </script>
+</body>
+</html>

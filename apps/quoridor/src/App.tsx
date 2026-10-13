@@ -164,6 +164,18 @@ function Match({
     setHint('');
   }, [state.moves, state.turn]);
 
+  // 차례가 넘어가면 화면 가운데에 잠깐 알림
+  const [turnToast, setTurnToast] = useState<{ id: number; p: Player; text: string } | null>(null);
+  useEffect(() => {
+    if (state.moves === 0 || state.winner !== null) return;
+    const seat = seats[state.turn];
+    setTurnToast({ id: state.moves, p: state.turn, text: seat.me ? '내 차례!' : `${seat.name} 차례` });
+    if (seat.me) buzz(20);
+    const t = setTimeout(() => setTurnToast(null), 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.moves, state.turn, state.winner]);
+
   const left = state.left[state.turn];
   const bottom: Player = flip ? 1 : 0;
   const top = (1 - bottom) as Player;
@@ -241,6 +253,12 @@ function Match({
           </div>
         )}
       </div>
+
+      {turnToast && (
+        <div key={turnToast.id} className={`turn-toast p${turnToast.p}`} role="status" aria-live="polite">
+          {turnToast.text}
+        </div>
+      )}
 
       {sheet.mounted && state.winner !== null && (
         <div className={`sheet-backdrop ${sheet.className}`}>

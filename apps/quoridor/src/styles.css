@@ -140,7 +140,29 @@ h1, h2, p, ol { margin: 0; }
 .seg button:disabled { opacity: 1; }
 .count { display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 2px; border-radius: 10px; background: color-mix(in srgb, currentColor 18%, transparent); font-size: 13px; font-variant-numeric: tabular-nums; }
 .seg button.ult-tab.is-on { background: linear-gradient(135deg, #ffb703, #fb5607); color: #fff; }
-.ult-hint { color: #d97706; font-weight: 700; }
+
+/* 필살기 카드 */
+.card-panel { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px; border-radius: 16px; text-align: center; border: 1.5px solid; animation: rise-in var(--duration-slow) var(--ease-smooth-out) both; }
+.card-panel b { font-size: 18px; }
+.card-panel span { font-size: 14px; }
+.card-panel .primary { margin-top: 4px; }
+.card-panel.is-good { background: rgba(255, 183, 3, 0.14); border-color: #f59e0b; }
+.card-panel.is-bad { background: rgba(124, 58, 237, 0.12); border-color: #7c3aed; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } }
+.soft.wide { width: 100%; }
+.card-sheet { gap: 8px; }
+.flip { width: 96px; height: 128px; perspective: 600px; margin-bottom: 6px; }
+.flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: card-flip 0.7s var(--ease-smooth-out) 0.15s both; }
+.flip-back, .flip-front { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 10px 24px rgba(40, 25, 10, 0.25); }
+.flip-back { background: repeating-linear-gradient(45deg, #3b2a1a, #3b2a1a 8px, #4a3523 8px, #4a3523 16px); color: #ffd166; font-size: 48px; font-weight: 900; }
+.flip-front { transform: rotateY(180deg); font-size: 54px; }
+.is-good .flip-front { background: linear-gradient(135deg, #ffe08a, #ffb703); }
+.is-bad .flip-front { background: linear-gradient(135deg, #b9a4f5, #6d28d9); }
+@keyframes card-flip { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
+.card-verdict { font-weight: 900; font-size: 15px; animation: rise-in var(--duration-slow) var(--ease-smooth-out) 0.7s both; }
+.card-verdict.is-good { color: #d97706; }
+.card-verdict.is-bad { color: #7c3aed; }
+.target.is-curse { fill: #7c3aed; animation: target-in var(--duration-fast) var(--ease-bounce) both, ult-pulse 0.9s ease-in-out infinite alternate; }
 .ult-mark { font-size: 13px; filter: grayscale(1); opacity: 0.35; transition: opacity var(--duration-fast), filter var(--duration-fast); }
 .ult-mark.on { filter: none; opacity: 1; }
 .target.is-ult { fill: #ffb703; stroke: #fb5607; stroke-width: 0.5; animation: target-in var(--duration-fast) var(--ease-bounce) both, ult-pulse 0.9s ease-in-out infinite alternate; }
@@ -181,5 +203,6 @@ h1, h2, p, ol { margin: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .pawn, .wall.is-new, .target, .target.is-ult, .pawn.is-ult .pawn-body, .pawn.is-turn .pawn-ring, .pawn.is-winner .pawn-body, .turn-toast { animation: none; transition: none; }
+  .flip-inner { animation: none; transform: rotateY(180deg); }
+  .pawn, .wall.is-new, .target, .target.is-ult, .target.is-curse, .card-panel, .card-verdict, .pawn.is-ult .pawn-body, .pawn.is-turn .pawn-ring, .pawn.is-winner .pawn-body, .turn-toast { animation: none; transition: none; }
 }

@@ -10,7 +10,24 @@
 export type Player = 0 | 1;
 export type Cell = [number, number];
 export type Orient = 'h' | 'v';
-export type Move = { t: 'move'; r: number; c: number; ult?: true } | { t: 'wall'; o: Orient; r: number; c: number };
+export type Move =
+  | { t: 'move'; r: number; c: number; ult?: true }
+  | { t: 'wall'; o: Orient; r: number; c: number }
+  /** 필살기 뽑기 (뽑는 쪽이 무작위로 정해 보낸다) */
+  | { t: 'draw'; k: CardKind }
+  /** 칸을 고를 필요 없는 필살기 카드 발동 */
+  | { t: 'card' };
+
+/** 필살기 카드. 반은 좋고 반은 나쁘다. 뽑으면 그 턴에 무조건 써야 한다 */
+export type CardKind = 'jump' | 'again' | 'supply' | 'back' | 'confiscate' | 'nap';
+export const CARDS: Record<CardKind, { good: boolean; emoji: string; name: string; desc: string; pick?: true }> = {
+  jump: { good: true, emoji: '⚡', name: '벽 넘기', desc: '바로 옆을 막은 벽을 넘어 한 칸 이동해요', pick: true },
+  again: { good: true, emoji: '🔁', name: '한 번 더', desc: '이번 턴에 두 번 연달아 둘 수 있어요' },
+  supply: { good: true, emoji: '🧱', name: '벽 보급', desc: '벽을 3개 더 받아요' },
+  back: { good: false, emoji: '🐢', name: '뒷걸음질', desc: '뒤로 한 칸 물러나야 해요', pick: true },
+  confiscate: { good: false, emoji: '💥', name: '벽 압수', desc: '내 벽 2개를 잃어요' },
+  nap: { good: false, emoji: '😴', name: '낮잠', desc: '이번 턴은 아무것도 못 하고 쉬어요' },
+};
 
 export type State = {
   pawns: [Cell, Cell];
@@ -18,6 +35,10 @@ export type State = {
   left: [number, number];
   /** 남은 필살기(벽 넘기) 횟수. 예전 저장본엔 없을 수 있다 */
   ult?: [number, number];
+  /** 뽑았지만 아직 안 쓴 필살기 카드 (뽑은 사람 차례가 유지된다) */
+  card?: { p: Player; k: CardKind } | null;
+  /** '한 번 더' 카드로 한 번 더 두는 사람 */
+  bonus?: Player | null;
   turn: Player;
   /** 이번 판에 먼저 둔 사람 (한 판 더 할 때 번갈아) */
   first: Player;
@@ -46,6 +67,8 @@ export function newGame(first: Player = 0): State {
     walls: [],
     left: [WALLS_EACH, WALLS_EACH],
     ult: [ULT_EACH, ULT_EACH],
+    card: null,
+    bonus: null,
     turn: first,
     first,
     winner: null,
@@ -98,7 +121,6 @@ export const ultLeft = (s: State, p: Player = s.turn) => (s.ult ?? [ULT_EACH, UL
 
 /** 필살기: 바로 옆 칸 중 벽에 막힌 곳으로 벽을 넘어 한 칸 이동 */
 export function ultMoves(s: State, p: Player = s.turn): Cell[] {
-  if (ultLeft(s, p) <= 0) return [];
   const k = keys(s.walls);
   const [r, c] = s.pawns[p];
   const [or, oc] = s.pawns[1 - p];
@@ -110,6 +132,33 @@ export function ultMoves(s: State, p: Player = s.turn): Cell[] {
     out.push([nr, nc]);
   }
   return out;
+}
+
+/** 뒷걸음질: 갈 수 있는 칸 중 목표에서 멀어지는 곳 */
+export function backMoves(s: State, p: Player = s.turn): Cell[] {
+  const from = Math.abs(s.pawns[p][0] - GOAL[p]);
+  return pawnMoves(s, p).filter(([r]) => Math.abs(r - GOAL[p]) > from);
+}
+
+/** 지금 들고 있는 카드로 고를 수 있는 칸 */
+export function cardMoves(s: State): Cell[] {
+  const k = s.card?.k;
+  return k === 'jump' ? ultMoves(s) : k === 'back' ? backMoves(s) : [];
+}
+
+/** 지금 판에서 실제로 쓸 수 있는 카드인지 (못 쓰는 카드는 안 나오게) */
+function usable(s: State, k: CardKind) {
+  if (k === 'jump') return ultMoves(s).length > 0;
+  if (k === 'back') return backMoves(s).length > 0;
+  if (k === 'confiscate') return s.left[s.turn] > 0;
+  return true;
+}
+
+/** 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나 */
+export function drawCard(s: State, rand = Math.random): CardKind {
+  const good = rand() < 0.5;
+  const pool = (Object.keys(CARDS) as CardKind[]).filter((k) => CARDS[k].good === good && usable(s, k));
+  return pool[Math.floor(rand() * pool.length)];
 }
 
 /** 벽만 고려한 목표까지 최단 칸 수. 길이 없으면 -1 */
@@ -152,24 +201,67 @@ export function wallProblem(s: State, o: Orient, r: number, c: number): WallProb
   return null;
 }
 
+/** 한 수를 마치고 차례를 넘긴다. '한 번 더' 중이면 한 번은 차례를 지킨다 */
+function endAction(next: State, p: Player) {
+  if (next.bonus === p) {
+    next.bonus = null;
+    next.turn = p;
+  } else {
+    next.turn = (1 - p) as Player;
+  }
+}
+
+const withPawn = (s: State, p: Player, r: number, c: number): [Cell, Cell] =>
+  p === 0 ? [[r, c], s.pawns[1]] : [s.pawns[0], [r, c]];
+const addWalls = (s: State, p: Player, d: number): [number, number] =>
+  p === 0 ? [Math.max(0, s.left[0] + d), s.left[1]] : [s.left[0], Math.max(0, s.left[1] + d)];
+
 /** 규칙에 맞으면 다음 상태, 아니면 null */
 export function apply(s: State, m: Move): State | null {
   if (s.winner !== null) return null;
   const p = s.turn;
-  const next: State = { ...s, turn: (1 - p) as Player, moves: s.moves + 1, last: m };
-  if (m.t === 'move') {
-    const options = m.ult ? ultMoves(s, p) : pawnMoves(s, p);
-    if (!options.some(([r, c]) => r === m.r && c === m.c)) return null;
-    if (m.ult) {
-      const u = s.ult ?? [ULT_EACH, ULT_EACH];
-      next.ult = p === 0 ? [u[0] - 1, u[1]] : [u[0], u[1] - 1];
+  const next: State = { ...s, moves: s.moves + 1, last: m };
+  const card = s.card?.p === p ? s.card.k : null;
+
+  // 카드를 들고 있으면 그 카드만 쓸 수 있다
+  if (card) {
+    next.card = null;
+    if (m.t === 'move' && CARDS[card].pick) {
+      if (!cardMoves(s).some(([r, c]) => r === m.r && c === m.c)) return null;
+      next.pawns = withPawn(s, p, m.r, m.c);
+      next.last = card === 'jump' ? { t: 'move', r: m.r, c: m.c, ult: true } : { t: 'move', r: m.r, c: m.c };
+      if (m.r === GOAL[p]) next.winner = p;
+      endAction(next, p);
+      return next;
     }
-    next.pawns = p === 0 ? [[m.r, m.c], s.pawns[1]] : [s.pawns[0], [m.r, m.c]];
+    if (m.t !== 'card' || CARDS[card].pick) return null;
+    if (card === 'again') {
+      next.bonus = p; // 차례 유지, 이어서 두 번 둔다
+      return next;
+    }
+    if (card === 'supply') next.left = addWalls(s, p, 3);
+    if (card === 'confiscate') next.left = addWalls(s, p, -2);
+    endAction(next, p);
+    return next;
+  }
+
+  if (m.t === 'draw') {
+    if (ultLeft(s, p) <= 0 || !CARDS[m.k] || !usable(s, m.k)) return null;
+    const u = s.ult ?? [ULT_EACH, ULT_EACH];
+    next.ult = p === 0 ? [u[0] - 1, u[1]] : [u[0], u[1] - 1];
+    next.card = { p, k: m.k };
+    return next;
+  }
+  if (m.t === 'card') return null;
+  if (m.t === 'move') {
+    if (m.ult || !pawnMoves(s, p).some(([r, c]) => r === m.r && c === m.c)) return null;
+    next.pawns = withPawn(s, p, m.r, m.c);
     if (m.r === GOAL[p]) next.winner = p;
   } else {
     if (wallProblem(s, m.o, m.r, m.c)) return null;
     next.walls = [...s.walls, `${m.o}${m.r}${m.c}${p}`];
-    next.left = p === 0 ? [s.left[0] - 1, s.left[1]] : [s.left[0], s.left[1] - 1];
+    next.left = addWalls(s, p, -1);
   }
+  endAction(next, p);
   return next;
 }

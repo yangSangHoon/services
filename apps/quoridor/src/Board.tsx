@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
-import { N, goalRow, parseWall, pawnMoves, ultMoves, type Cell, type Orient, type Player, type State } from './game';
+import { N, goalRow, parseWall, pawnMoves, cardMoves, type Cell, type Orient, type Player, type State } from './game';
 
 /** 보드 좌표(viewBox 단위). 칸 10, 홈 2.6 */
 const CELL = 10;
@@ -60,7 +60,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
   };
 
   const targets: Cell[] =
-    !active || state.winner !== null ? [] : mode === 'move' ? pawnMoves(state) : mode === 'ult' ? ultMoves(state) : [];
+    !active || state.winner !== null ? [] : mode === 'move' ? pawnMoves(state) : mode === 'ult' ? cardMoves(state) : [];
   const last = state.last;
 
   const wallRect = (o: Orient, r: number, c: number) => {
@@ -96,7 +96,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
       )}
 
       {targets.map(([r, c]) => (
-        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? 'is-ult' : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
+        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? (state.card?.k === 'back' ? 'is-curse' : 'is-ult') : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
       ))}
 
       {state.walls.map((w) => {

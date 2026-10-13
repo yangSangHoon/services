@@ -1,9 +1,9 @@
 import { isConfigured } from '@lab/core';
 import { PopNumber, SwapText, usePresence } from '@lab/core/motion';
 import { track } from '@lab/core/track';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Board, { type Ghost } from './Board';
-import { ULT_EACH, WALLS_EACH, apply, distance, goalRow, newGame, ultLeft, ultMoves, wallProblem, type Move, type Orient, type Player, type State } from './game';
+import { CARDS, ULT_EACH, WALLS_EACH, apply, distance, drawCard, goalRow, newGame, ultLeft, wallProblem, type Move, type Orient, type Player, type State } from './game';
 import { createRoom, newRoomCode, useRoom } from './online';
 
 const COLOR_NAME = ['파랑', '주황'] as const;
@@ -13,7 +13,7 @@ const PROBLEM = {
   trap: '길을 완전히 막을 수는 없어요',
 } as const;
 
-const buzz = (ms = 8) => navigator.vibrate?.(ms);
+const buzz = (ms: number | number[] = 8) => navigator.vibrate?.(ms);
 
 // ───────── 라우팅: #local · #r=CODE · 처음 화면
 
@@ -110,7 +110,7 @@ function Rules() {
         <b>뛰어넘기</b> 말끼리 마주 보면 넘어갈 수 있어요. 뒤가 막혀 있으면 옆 대각선으로.
       </li>
       <li>
-        <b>⚡ 필살기</b> 한 판에 {ULT_EACH}번, 바로 옆을 막은 벽을 넘어 한 칸 이동할 수 있어요.
+        <b>🎁 필살기</b> 한 판에 {ULT_EACH}번. 뭐가 나올지는 눌러 봐야 알아요. 반은 좋은 카드, 반은 나쁜 카드! 뽑은 카드는 그 턴에 무조건 써야 해요.
       </li>
     </ol>
   );
@@ -167,20 +167,52 @@ function Match({
     setHint('');
   }, [state.moves, state.turn]);
 
-  // 차례가 넘어가면 화면 가운데에 잠깐 알림
+  // 차례가 넘어가면(또는 '한 번 더'로 이어 두면) 화면 가운데에 잠깐 알림
   const [turnToast, setTurnToast] = useState<{ id: number; p: Player; text: string } | null>(null);
+  const prevTurn = useRef(state.turn);
   useEffect(() => {
+    const changed = prevTurn.current !== state.turn;
+    prevTurn.current = state.turn;
     if (state.moves === 0 || state.winner !== null) return;
+    const again = !changed && (state.last?.t === 'move' || state.last?.t === 'wall');
+    if (!changed && !again) return;
     const seat = seats[state.turn];
-    setTurnToast({ id: state.moves, p: state.turn, text: seat.me ? '내 차례!' : `${seat.name} 차례` });
+    setTurnToast({ id: state.moves, p: state.turn, text: again ? '🔁 한 번 더!' : seat.me ? '내 차례!' : `${seat.name} 차례` });
     if (seat.me) buzz(20);
     const t = setTimeout(() => setTurnToast(null), 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.moves, state.turn, state.winner]);
 
+  // 필살기 카드: 뽑으면 공개 시트를 띄우고, 쓸 때까지 다른 행동은 막는다
+  const card = state.card && state.card.p === state.turn ? CARDS[state.card.k] : null;
+  const myCard = !!card && canPlay;
+  const [seenCard, setSeenCard] = useState(-1);
+  const revealOpen = !!card && seenCard !== state.moves;
+  const reveal = usePresence(revealOpen, '--dropdown-close-dur');
+  const [shownCard, setShownCard] = useState(card);
+  useEffect(() => {
+    if (card) setShownCard(card);
+  }, [card]);
+  useEffect(() => {
+    if (card) buzz(card.good ? [20, 40, 20] : 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.card?.k, state.card?.p, state.moves]);
+
+  const useCard = () => {
+    setSeenCard(state.moves);
+    if (!card || !myCard) return;
+    if (card.pick) {
+      setMode('ult');
+      setHint(card.good ? '넘어갈 칸을 눌러요' : '물러날 칸을 골라요');
+    } else {
+      onMove({ t: 'card' });
+    }
+  };
+
   const left = state.left[state.turn];
   const ult = ultLeft(state);
+  const boardMode = myCard ? (card!.pick && !revealOpen ? 'ult' : 'wall-none') : mode;
   const bottom: Player = flip ? 1 : 0;
   const top = (1 - bottom) as Player;
 
@@ -213,10 +245,10 @@ function Match({
         <Board
           state={state}
           flip={flip}
-          mode={mode}
-          active={canPlay}
-          ghost={canPlay && mode === 'wall' ? ghost : null}
-          onCell={(r, c) => onMove(mode === 'ult' ? { t: 'move', r, c, ult: true } : { t: 'move', r, c }) && buzz(mode === 'ult' ? 40 : 8)}
+          mode={boardMode === 'wall-none' ? 'move' : boardMode}
+          active={canPlay && boardMode !== 'wall-none'}
+          ghost={canPlay && boardMode === 'wall' ? ghost : null}
+          onCell={(r, c) => onMove({ t: 'move', r, c }) && buzz(boardMode === 'ult' ? 40 : 8)}
           onAim={aim}
         />
       </div>
@@ -224,41 +256,47 @@ function Match({
       <PlayerCard state={state} p={bottom} seat={seats[bottom]} />
 
       <div className={`controls ${canPlay ? '' : 'is-waiting'}`}>
-        <div className="seg" role="tablist" aria-label="할 일">
-          <button role="tab" aria-selected={mode === 'move'} className={mode === 'move' ? 'is-on' : ''} onClick={() => setMode('move')} disabled={!canPlay}>
-            🚶 이동
-          </button>
-          <button
-            role="tab"
-            aria-selected={mode === 'wall'}
-            className={mode === 'wall' ? 'is-on' : ''}
-            onClick={() => {
-              setMode('wall');
-              setHint(left ? '판에서 벽 세울 홈을 누르거나 끌어 보세요' : PROBLEM['no-walls']);
-            }}
-            disabled={!canPlay}
-          >
-            🧱 벽 <span className="count">{left}</span>
-          </button>
-          <button
-            role="tab"
-            aria-selected={mode === 'ult'}
-            className={`ult-tab ${mode === 'ult' ? 'is-on' : ''}`}
-            onClick={() => {
-              setMode('ult');
-              setHint(ultMoves(state).length ? '넘어갈 칸을 눌러 보세요' : '지금은 바로 옆에 넘을 벽이 없어요');
-            }}
-            disabled={!canPlay || ult <= 0}
-          >
-            ⚡ 필살기 <span className="count">{ult}</span>
-          </button>
-        </div>
-        {mode === 'ult' && canPlay && (
-          <p className="hint ult-hint">
-            <SwapText text={hint || ' '} />
-          </p>
+        {myCard ? (
+          <div className={`card-panel ${card!.good ? 'is-good' : 'is-bad'}`}>
+            <b>
+              {card!.emoji} {card!.name}
+            </b>
+            <span>{card!.pick ? hint || card!.desc : card!.desc}</span>
+            {(!card!.pick || revealOpen) && (
+              <button className="primary wide" onClick={useCard}>
+                {card!.good ? '사용하기' : '받아들이기…'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="seg" role="tablist" aria-label="할 일">
+            <button role="tab" aria-selected={mode === 'move'} className={mode === 'move' ? 'is-on' : ''} onClick={() => setMode('move')} disabled={!canPlay}>
+              🚶 이동
+            </button>
+            <button
+              role="tab"
+              aria-selected={mode === 'wall'}
+              className={mode === 'wall' ? 'is-on' : ''}
+              onClick={() => {
+                setMode('wall');
+                setHint(left ? '판에서 벽 세울 홈을 누르거나 끌어 보세요' : PROBLEM['no-walls']);
+              }}
+              disabled={!canPlay}
+            >
+              🧱 벽 <span className="count">{left}</span>
+            </button>
+            <button
+              className="ult-tab"
+              onClick={() => {
+                if (onMove({ t: 'draw', k: drawCard(state) })) setMode('move');
+              }}
+              disabled={!canPlay || ult <= 0 || !!state.bonus}
+            >
+              🎁 필살기 <span className="count">{ult ? '?' : 0}</span>
+            </button>
+          </div>
         )}
-        {mode === 'wall' && canPlay && (
+        {mode === 'wall' && canPlay && !myCard && (
           <div className="wall-actions">
             <p className={`hint ${ghost && !ghost.ok ? 'is-bad' : ''}`}>
               <SwapText text={hint || (ghost ? '여기에 세울까요?' : ' ')} />
@@ -278,6 +316,34 @@ function Match({
       {turnToast && (
         <div key={turnToast.id} className={`turn-toast p${turnToast.p}`} role="status" aria-live="polite">
           {turnToast.text}
+        </div>
+      )}
+
+      {reveal.mounted && shownCard && (
+        <div className={`sheet-backdrop ${reveal.className}`}>
+          <div className={`sheet card-sheet t-dropdown ${reveal.className}`} data-origin="top-center">
+            <div className="flip">
+              <div className={`flip-inner ${shownCard.good ? 'is-good' : 'is-bad'}`}>
+                <div className="flip-back">?</div>
+                <div className="flip-front">{shownCard.emoji}</div>
+              </div>
+            </div>
+            <p className={`card-verdict ${shownCard.good ? 'is-good' : 'is-bad'}`}>{shownCard.good ? '좋은 카드!' : '앗, 나쁜 카드…'}</p>
+            <h2>{shownCard.name}</h2>
+            <p className="muted">
+              {myCard || !card ? shownCard.desc : `${seats[state.turn].name}가 뽑았어요 · ${shownCard.desc}`}
+            </p>
+            {myCard ? (
+              <button className="primary wide" onClick={useCard}>
+                {shownCard.good ? '사용하기' : '받아들이기…'}
+              </button>
+            ) : (
+              <button className="soft wide" onClick={() => setSeenCard(state.moves)}>
+                확인
+              </button>
+            )}
+            {myCard && !shownCard.good && <p className="muted small">나쁜 카드도 이번 턴에 꼭 써야 해요</p>}
+          </div>
         </div>
       )}
 
@@ -316,7 +382,7 @@ function PlayerCard({ state, p, seat }: { state: State; p: Player; seat: Seat })
         ⚡
       </span>
       <span className="pips" aria-label={`남은 벽 ${state.left[p]}개`}>
-        {Array.from({ length: WALLS_EACH }, (_, i) => (
+        {Array.from({ length: Math.max(WALLS_EACH, state.left[p]) }, (_, i) => (
           <i key={i} className={i < state.left[p] ? 'on' : ''} />
         ))}
       </span>

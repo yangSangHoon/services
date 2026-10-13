@@ -37,6 +37,11 @@ const EVENT_LABEL: Record<string, string> = {
   record: '녹화',
   camera: '카메라 켬',
   catch: '모기 잡기',
+  local: '한 폰 대결 시작',
+  online: '온라인 방 만들기',
+  invite: '친구 초대',
+  join: '초대받아 입장',
+  finish: '한 판 끝',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

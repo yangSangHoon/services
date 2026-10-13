@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    display: flex; align-items: center; gap: 64px; padding: 0 84px;
+    font-family: 'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #2a2118;
+    background: radial-gradient(90% 120% at 80% 50%, #fbf3e4, #efe4d0);
+  }
+  .left { flex: 1; }
+  .logo { font-size: 30px; font-weight: 800; margin-bottom: 24px; color: #a7743f; }
+  h1 { font-size: 84px; line-height: 1.1; letter-spacing: -3px; font-weight: 900; }
+  h1 em { font-style: normal; color: #f0702f; }
+  .sub { margin-top: 26px; font-size: 30px; color: #85776a; font-weight: 600; }
+  .vs { margin-top: 34px; display: flex; gap: 14px; font-size: 24px; font-weight: 800; }
+  .vs span { padding: 10px 20px; border-radius: 999px; color: #fff; }
+  .b { background: #2f6bf0; } .o { background: #f0702f; }
+  .board { width: 430px; height: 430px; flex: none; border-radius: 34px; background: #a7743f; padding: 18px; transform: rotate(4deg); box-shadow: 0 30px 70px rgba(80,50,20,.35); }
+  svg { display: block; width: 100%; height: 100%; overflow: visible; }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="logo">🧱 쿼리도 한판</div>
+    <h1>벽 세워서<br /><em>길 막기!</em></h1>
+    <p class="sub">링크 하나로 친구와 바로 1:1 대결</p>
+    <div class="vs"><span class="b">파랑</span><span class="o">주황</span></div>
+  </div>
+  <div class="board"><svg viewBox="0 0 109.2 109.2" id="b"></svg></div>
+  <script>
+    const S = 12.6, svg = document.getElementById('b');
+    let h = '';
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const fill = r === 0 ? '#c2b6a6' : r === 8 ? '#efb489' : '#f0d9b0';
+      h += `<rect x="${c*S}" y="${r*S}" width="10" height="10" rx="1.6" fill="${fill}"/>`;
+    }
+    const wall = (o, r, c, col) => h += o === 'h'
+      ? `<rect x="${c*S}" y="${(r+1)*S-2.6}" width="22.6" height="2.6" rx="1" fill="${col}"/>`
+      : `<rect x="${(c+1)*S-2.6}" y="${r*S}" width="2.6" height="22.6" rx="1" fill="${col}"/>`;
+    wall('h', 2, 3, '#2756c4'); wall('h', 2, 5, '#2756c4'); wall('v', 3, 2, '#d3622a'); wall('h', 5, 4, '#d3622a'); wall('v', 5, 6, '#2756c4');
+    h += `<circle cx="${4*S+5}" cy="${2*S+5}" r="3.6" fill="#f0702f" stroke="#fff" stroke-width=".7"/>`;
+    h += `<circle cx="${5*S+5}" cy="${6*S+5}" r="3.6" fill="#2f6bf0" stroke="#fff" stroke-width=".7"/>`;
+    svg.innerHTML = h;
+  </script>
+</body>
+</html>

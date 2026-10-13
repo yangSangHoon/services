@@ -1,0 +1,19 @@
+{
+  "name": "@lab/stats",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "lab": {
+    "title": "방문 통계",
+    "emoji": "📊",
+    "description": "Idea Lab 앱별 방문자 대시보드",
+    "unlisted": true
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@lab/core": "*"
+  }
+}

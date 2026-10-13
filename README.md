@@ -8,6 +8,14 @@
 | [🥢 찰떡궁합](https://yangsanghoon.github.io/services/food-match/) | 이거랑 이거, 같이 먹어도 돼? 음식 궁합과 속설 판별 |
 | [🦟 앵앵 몰카](https://yangsanghoon.github.io/services/mosquito-cam/) | 화면엔 모기가 날고 스피커에선 앵~ 소리, 반응을 영상으로 찍어 공유 |
 
+## 방문 통계
+
+[📊 /services/stats/](https://yangsanghoon.github.io/services/stats/) — 앱별 순방문자·유입 경로·앱 안 이벤트 대시보드(관리자만, 목록에는 안 보임).
+
+- 앱은 `main.tsx` 에서 `track('<slug>')` 한 줄로 방문을 남긴다(템플릿에 포함). 앱 안 이벤트는 `track('<slug>', 'share')` 처럼.
+- 데이터: `lab_visits` 테이블 + `lab_track` / `lab_stats` RPC (`supabase/migrations/20261013030000_lab_stats.sql`).
+- 관리자 등록: `insert into public.lab_admins (user_id) select id from auth.users where email = '<이메일>';`
+
 ## 시작하기
 
 ```bash

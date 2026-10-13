@@ -1,4 +1,5 @@
 import { PopNumber, usePresence } from '@lab/core/motion';
+import { track } from '@lab/core/track';
 import { useEffect, useRef, useState } from 'react';
 import { closeSession, Engine, openSession, type Recording, type Session } from './engine';
 import { MODES, type Mode } from './mosquito';
@@ -35,6 +36,7 @@ function Intro({ onStart }: { onStart: (s: Session) => void }) {
     setBusy(true);
     try {
       onStart(await openSession());
+      track('mosquito-cam', 'camera');
     } catch (e) {
       const name = (e as Error).name;
       setError(
@@ -123,7 +125,10 @@ function Camera({ session, onExit }: { session: Session; onExit: () => void }) {
 
   useEffect(() => {
     const engine = new Engine(canvasRef.current!, videoRef.current!, session);
-    engine.onKill = () => setKills((k) => k + 1);
+    engine.onKill = () => {
+      setKills((k) => k + 1);
+      track('mosquito-cam', 'catch');
+    };
     engineRef.current = engine;
     return () => engine.dispose();
   }, [session]);
@@ -165,6 +170,7 @@ function Camera({ session, onExit }: { session: Session; onExit: () => void }) {
     const e = engineRef.current!;
     if (e.recording) return void stop();
     e.startRecording();
+    track('mosquito-cam', 'record');
     setElapsed(0);
     setRecStart({ at: Date.now(), kills });
     setHint(false);
@@ -266,6 +272,7 @@ function ResultSheet({ result, onRetake }: { result: Result | null; onRetake: ()
   const canShare = Boolean(navigator.canShare?.({ files: [file] }));
 
   const share = async () => {
+    track('mosquito-cam', 'share');
     try {
       await navigator.share({ files: [file], title: '앵앵 몰카' });
     } catch {
@@ -284,7 +291,7 @@ function ResultSheet({ result, onRetake }: { result: Result | null; onRetake: ()
               📤 공유·저장
             </button>
           ) : (
-            <a className="cta" href={r.url} download={fileName}>
+            <a className="cta" href={r.url} download={fileName} onClick={() => track('mosquito-cam', 'save')}>
               ⬇️ 영상 저장
             </a>
           )}

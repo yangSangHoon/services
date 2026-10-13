@@ -34,7 +34,9 @@ function esc(s) {
 }
 
 function renderIndex(apps) {
+  // lab.unlisted: 빌드·배포는 하되 목록에는 안 보이는 앱(예: 통계 대시보드)
   const cards = apps
+    .filter((a) => !a.lab.unlisted)
     .map(
       (a) => `<a class="card" href="./${a.slug}/">
         <span class="emoji">${esc(a.lab.emoji)}</span>

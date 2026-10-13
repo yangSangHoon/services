@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./vite": "./vite.js",
     "./motion.css": "./src/motion.css",
-    "./motion": "./src/motion.tsx"
+    "./motion": "./src/motion.tsx",
+    "./track": "./src/track.ts"
   }
 }

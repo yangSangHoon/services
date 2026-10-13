@@ -1,4 +1,5 @@
 import { AutoHeight, MorphText, PopNumber, Reveal, SwapText, usePresence } from '@lab/core/motion';
+import { track } from '@lab/core/track';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRESETS, type Food, type Verdict } from './data';
 import { evaluate, FOOD_BY_ID, partnerCount, previewWith, searchFoods, type PairResult } from './match';
@@ -303,6 +304,7 @@ function ShareButton({ table }: { table: Food[] }) {
   const share = async () => {
     const url = `${location.origin}${location.pathname}#t=${table.map((f) => f.id).join(',')}`;
     const text = `${table.map((f) => f.emoji + f.name).join(' + ')}, 같이 먹어도 될까?`;
+    track('food-match', 'share');
     try {
       if (navigator.share) return await navigator.share({ title: '찰떡궁합', text, url });
       await navigator.clipboard.writeText(url);

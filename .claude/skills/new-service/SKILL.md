@@ -51,6 +51,7 @@ curl -s "https://sugayrefionpkzkzdgss.supabase.co/rest/v1/<prefix><table>?select
 - localStorage 키, Realtime 채널 이름에 slug를 붙인다.
 - RLS 때문에 다른 사용자에게 안 보이게 된 행의 변화는 `postgres_changes`로 전달되지 않는다. 실시간 알림이 필요하면 broadcast 채널을 쓴다(참고: `apps/dream-market/src/lib/realtime.ts`).
 - 모션은 공용 `@lab/core/motion`(`usePresence`, `AutoHeight`, `SwapText`, `PopNumber`, `Reveal`, `MorphText`) + `import '@lab/core/motion.css'` 를 쓴다(transitions.dev 조각). 목록에 없는 모션이 필요하면 `.claude/skills/transitions-dev/` 에서 골라 `packages/core/src/motion.css`에 추가. 참고: `apps/food-match/src/App.tsx`
+- 방문 통계: 템플릿 `main.tsx`에 `track('<slug>')`가 이미 들어 있다. 핵심 행동(공유, 저장, 생성 등)에는 `track('<slug>', '<event>')`를 붙이고, 이벤트 이름의 한국어 라벨을 `apps/stats/src/App.tsx`의 `EVENT_LABEL`에 추가한다.
 - 스타일은 `:root` CSS 변수(디자인 토큰)로 정의해서 나중에 디자인 교체가 쉽게. 모바일 폭(좌우 16px)에서 가로 스크롤 없게.
 - 앱 전용 라이브러리는 `npm i <pkg> -w apps/<slug>`.
 

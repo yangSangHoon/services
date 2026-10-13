@@ -1,8 +1,10 @@
+import { AutoHeight, MorphText, PopNumber, Reveal, SwapText, usePresence } from '@lab/core/motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRESETS, type Food, type Verdict } from './data';
 import { evaluate, FOOD_BY_ID, partnerCount, previewWith, searchFoods, type PairResult } from './match';
 
 const STORAGE_KEY = 'food-match:table';
+const CHIP_EXIT_MS = 180;
 
 const VERDICT: Record<Verdict, { label: string; icon: string }> = {
   bad: { label: '주의', icon: '🚨' },
@@ -24,7 +26,12 @@ function loadTable(): string[] {
 
 export default function App() {
   const [ids, setIds] = useState<string[]>(loadTable);
-  const table = useMemo(() => ids.map((id) => FOOD_BY_ID.get(id)!), [ids]);
+  // 빠지는 중인 칩: 모션이 끝나면 ids 에서 지운다. 판정에서는 바로 뺀다
+  const [leaving, setLeaving] = useState<Set<string>>(new Set());
+  const leavingRef = useRef(leaving);
+  leavingRef.current = leaving;
+  const chips = useMemo(() => ids.map((id) => FOOD_BY_ID.get(id)!), [ids]);
+  const table = useMemo(() => chips.filter((f) => !leaving.has(f.id)), [chips, leaving]);
 
   useEffect(() => {
     try {
@@ -35,9 +42,24 @@ export default function App() {
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   }, [ids]);
 
-  const add = (id: string) => setIds((cur) => (cur.includes(id) ? cur : [...cur, id]));
-  const remove = (id: string) => setIds((cur) => cur.filter((x) => x !== id));
-  const toggle = (id: string) => (ids.includes(id) ? remove(id) : add(id));
+  const add = (id: string) => {
+    setLeaving((cur) => (cur.has(id) ? new Set([...cur].filter((x) => x !== id)) : cur));
+    setIds((cur) => (cur.includes(id) ? cur : [...cur, id]));
+  };
+  const remove = (...out: string[]) => {
+    setLeaving((cur) => new Set([...cur, ...out]));
+    setTimeout(() => {
+      // 그새 다시 담은 음식(leaving 에서 빠진 것)은 남긴다
+      const gone = out.filter((x) => leavingRef.current.has(x));
+      setIds((cur) => cur.filter((x) => !gone.includes(x)));
+      setLeaving((cur) => new Set([...cur].filter((x) => !gone.includes(x))));
+    }, CHIP_EXIT_MS);
+  };
+  const toggle = (id: string) => (ids.includes(id) && !leaving.has(id) ? remove(id) : add(id));
+  const preset = (next: string[]) => {
+    setLeaving(new Set());
+    setIds(next);
+  };
 
   return (
     <div className="app">
@@ -54,11 +76,11 @@ export default function App() {
         <p className="muted">음식을 식탁에 담으면 궁합을 알려드려요. 흔한 속설도 가려드려요.</p>
       </section>
 
-      <SearchBox table={table} ids={ids} onToggle={toggle} />
+      <SearchBox table={table} onToggle={toggle} />
 
-      <TableBar table={table} onRemove={remove} onClear={() => setIds([])} />
+      <TableBar chips={chips} leaving={leaving} count={table.length} onRemove={remove} onClear={() => remove(...ids)} />
 
-      <VerdictCard table={table} onPreset={setIds} />
+      <VerdictCard table={table} onPreset={preset} />
 
       <footer className="foot">
         일반적인 영양 정보예요. 질환이 있거나 약을 먹고 있다면 의사·약사와 상의하세요.
@@ -69,10 +91,17 @@ export default function App() {
 
 // ───────── 검색
 
-function SearchBox({ table, ids, onToggle }: { table: Food[]; ids: string[]; onToggle: (id: string) => void }) {
+function SearchBox({ table, onToggle }: { table: Food[]; onToggle: (id: string) => void }) {
   const [q, setQ] = useState('');
   const results = useMemo(() => searchFoods(q).slice(0, 8), [q]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdown = usePresence(Boolean(q));
+
+  // 닫히는 동안에는 마지막 결과를 그대로 보여준다
+  const lastShown = useRef({ q, results });
+  if (q) lastShown.current = { q, results };
+  const shown = lastShown.current;
+  const ids = table.map((f) => f.id);
 
   const pick = (f: Food) => {
     onToggle(f.id);
@@ -103,15 +132,15 @@ function SearchBox({ table, ids, onToggle }: { table: Food[]; ids: string[]; onT
         )}
       </div>
 
-      {q && (
-        <ul className="results">
-          {results.length === 0 && <li className="empty muted">아직 준비 중인 음식이에요. 계속 늘려갈게요!</li>}
-          {results.map((f) => {
+      {dropdown.mounted && (
+        <ul className={`results t-dropdown ${dropdown.className}`} data-origin="top-center">
+          {shown.results.length === 0 && <li className="empty muted">아직 준비 중인 음식이에요. 계속 늘려갈게요!</li>}
+          {shown.results.map((f) => {
             const added = ids.includes(f.id);
             const hint = added ? null : previewWith(f, table);
             return (
               <li key={f.id}>
-                <button className={`result ${added ? 'is-added' : ''}`} onClick={() => pick(f)}>
+                <button className={`result ${added ? 'is-added' : ''}`} onClick={() => pick(f)} tabIndex={q ? 0 : -1}>
                   <span className="r-emoji">{f.emoji}</span>
                   <span className="r-name">{f.name}</span>
                   {hint ? (
@@ -134,25 +163,40 @@ function SearchBox({ table, ids, onToggle }: { table: Food[]; ids: string[]; onT
 
 // ───────── 내 식탁
 
-function TableBar({ table, onRemove, onClear }: { table: Food[]; onRemove: (id: string) => void; onClear: () => void }) {
+function TableBar({
+  chips,
+  leaving,
+  count,
+  onRemove,
+  onClear,
+}: {
+  chips: Food[];
+  leaving: Set<string>;
+  count: number;
+  onRemove: (id: string) => void;
+  onClear: () => void;
+}) {
   return (
     <section className="table">
       <div className="table-head">
         <h2>
-          내 식탁 <span className="count">{table.length}</span>
+          내 식탁{' '}
+          <span className="count">
+            <PopNumber value={count} />
+          </span>
         </h2>
-        {table.length > 0 && (
+        {count > 0 && (
           <button className="link" onClick={onClear}>
             비우기
           </button>
         )}
       </div>
-      {table.length === 0 ? (
+      {chips.length === 0 ? (
         <p className="muted small">검색해서 음식을 담아보세요.</p>
       ) : (
         <ul className="chips">
-          {table.map((f) => (
-            <li key={f.id} className="chip">
+          {chips.map((f) => (
+            <li key={f.id} className={`chip ${leaving.has(f.id) ? 'is-leaving' : ''}`}>
               <span>{f.emoji}</span>
               {f.name}
               <button onClick={() => onRemove(f.id)} aria-label={`${f.name} 빼기`}>
@@ -168,68 +212,78 @@ function TableBar({ table, onRemove, onClear }: { table: Food[]; onRemove: (id: 
 
 // ───────── 판정
 
+type Tone = Verdict | 'none' | 'idle';
+
+const HEADLINE: Record<Tone, { icon: string; title: string }> = {
+  idle: { icon: '🍽️', title: '두 가지 이상 담으면 궁합을 알려드려요' },
+  bad: { icon: '🚨', title: '같이 먹을 때 주의할 조합이 있어요' },
+  good: { icon: '💚', title: '찰떡궁합이에요!' },
+  myth: { icon: '🤔', title: '걱정 마세요, 그냥 속설이에요' },
+  none: { icon: '😋', title: '특별히 알려진 궁합은 없어요' },
+};
+
 function VerdictCard({ table, onPreset }: { table: Food[]; onPreset: (ids: string[]) => void }) {
   const pairs = useMemo(() => evaluate(table), [table]);
   const count = (v: Verdict) => pairs.filter((p) => p.rule.verdict === v).length;
 
-  if (table.length < 2) {
-    return (
-      <section className="verdict tone-idle">
-        <div className="v-icon">🍽️</div>
-        <h2 className="v-title">두 가지 이상 담으면 궁합을 알려드려요</h2>
-        <p className="muted small">이런 조합은 어때요?</p>
-        <div className="presets">
-          {PRESETS.map((p) => (
-            <button key={p.label} className="preset" onClick={() => onPreset(p.ids)}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  const tone: Verdict | 'none' = count('bad') ? 'bad' : count('good') ? 'good' : count('myth') ? 'myth' : 'none';
-  const headline = {
-    bad: { icon: '🚨', title: '같이 먹을 때 주의할 조합이 있어요' },
-    good: { icon: '💚', title: '찰떡궁합이에요!' },
-    myth: { icon: '🤔', title: '걱정 마세요, 그냥 속설이에요' },
-    none: { icon: '😋', title: '특별히 알려진 궁합은 없어요' },
-  }[tone];
+  const tone: Tone =
+    table.length < 2 ? 'idle' : count('bad') ? 'bad' : count('good') ? 'good' : count('myth') ? 'myth' : 'none';
+  const headline = HEADLINE[tone];
 
   return (
-    <section className={`verdict tone-${tone}`} key={table.map((f) => f.id).join()}>
-      <div className="v-icon">{headline.icon}</div>
-      <h2 className="v-title">{headline.title}</h2>
-      {tone === 'none' ? (
-        <p className="muted">서로 방해하지 않아요. 맛있게 드세요!</p>
-      ) : (
-        <>
-          <div className="v-counts">
-            {(['bad', 'good', 'myth'] as const).map(
-              (v) =>
-                count(v) > 0 && (
-                  <span key={v} className={`tag tag-${v}`}>
-                    {VERDICT[v].icon} {VERDICT[v].label} {count(v)}
-                  </span>
-                ),
-            )}
-          </div>
-          <ul className="pairs">
-            {pairs.map((p) => (
-              <PairRow key={`${p.a.id}-${p.b.id}-${p.rule.title}`} pair={p} />
-            ))}
-          </ul>
-        </>
-      )}
-      <ShareButton table={table} />
+    <section className={`verdict tone-${tone}`}>
+      <div className="v-icon" key={tone}>
+        {headline.icon}
+      </div>
+      <AutoHeight>
+        <h2 className="v-title">
+          <SwapText text={headline.title} />
+        </h2>
+
+        {tone === 'idle' && (
+          <>
+            <p className="muted small">이런 조합은 어때요?</p>
+            <div className="presets">
+              {PRESETS.map((p) => (
+                <button key={p.label} className="preset" onClick={() => onPreset(p.ids)}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tone === 'none' && <p className="muted">서로 방해하지 않아요. 맛있게 드세요!</p>}
+
+        {pairs.length > 0 && (
+          <>
+            <div className="v-counts">
+              {(['bad', 'good', 'myth'] as const).map(
+                (v) =>
+                  count(v) > 0 && (
+                    <span key={v} className={`tag tag-${v}`}>
+                      {VERDICT[v].icon} {VERDICT[v].label} <PopNumber value={count(v)} />
+                    </span>
+                  ),
+              )}
+            </div>
+            <ul className="pairs">
+              {pairs.map((p, i) => (
+                <PairRow key={`${p.a.id}-${p.b.id}-${p.rule.title}`} pair={p} index={Math.min(i, 5)} />
+              ))}
+            </ul>
+          </>
+        )}
+
+        {tone !== 'idle' && <ShareButton table={table} />}
+      </AutoHeight>
     </section>
   );
 }
 
-function PairRow({ pair: { a, b, rule } }: { pair: PairResult }) {
+function PairRow({ pair: { a, b, rule }, index }: { pair: PairResult; index: number }) {
   return (
-    <li className={`pair pair-${rule.verdict}`}>
+    <Reveal as="li" index={index} className={`pair pair-${rule.verdict}`}>
       <div className="pair-head">
         <span className="pair-foods">
           {a.emoji} {a.name} <b>+</b> {b.emoji} {b.name}
@@ -240,7 +294,7 @@ function PairRow({ pair: { a, b, rule } }: { pair: PairResult }) {
       </div>
       <p className="pair-title">{rule.title}</p>
       <p className="pair-why">{rule.why}</p>
-    </li>
+    </Reveal>
   );
 }
 
@@ -260,7 +314,7 @@ function ShareButton({ table }: { table: Food[] }) {
   };
   return (
     <button className="share" onClick={share}>
-      {copied ? '✓ 링크 복사됨' : '🔗 이 조합 공유하기'}
+      <MorphText text={copied ? '✓ 링크를 복사했어요' : '🔗 이 조합 공유하기'} />
     </button>
   );
 }

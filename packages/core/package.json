@@ -4,6 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./vite": "./vite.js"
+    "./vite": "./vite.js",
+    "./motion.css": "./src/motion.css",
+    "./motion": "./src/motion.tsx"
   }
 }

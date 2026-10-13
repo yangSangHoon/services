@@ -67,7 +67,7 @@ curl -s "https://sugayrefionpkzkzdgss.supabase.co/rest/v1/<prefix><table>?select
 
 ## 7. 배포
 
-- `git add apps/<slug> supabase/migrations package-lock.json` 후 커밋, `main`에 push. (push 전 사용자에게 확인)
+- `git add apps/<slug> supabase/migrations package-lock.json` 후 커밋, `main`에 push. 테스트는 배포본에서 하므로 확인 없이 바로 push한다.
 - GitHub Actions `Deploy to GitHub Pages` 완료 확인: `gh run watch` 또는 `gh run list --limit 1`.
 - 카카오톡은 미리보기를 캐시하므로, 문구·이미지를 바꿨다면 https://developers.kakao.com/tool/clear/og 에서 URL 캐시 초기화를 안내한다(페이스북: https://developers.facebook.com/tools/debug/).
 - 사용자에게 `https://yangsanghoon.github.io/services/<slug>/` 링크와, 적용이 필요한 마이그레이션이 남아있다면 그 사실을 알려준다.

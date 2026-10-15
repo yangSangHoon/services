@@ -14,19 +14,23 @@ export type Move =
   | { t: 'move'; r: number; c: number; ult?: true }
   | { t: 'wall'; o: Orient; r: number; c: number }
   /** 필살기 뽑기 (뽑는 쪽이 무작위로 정해 보낸다) */
-  | { t: 'draw'; k: CardKind }
+  | { t: 'draw'; k: CardKind; d?: number }
   /** 칸을 고를 필요 없는 필살기 카드 발동 */
   | { t: 'card' };
 
 /** 필살기 카드. 반은 좋고 반은 나쁘다. 뽑으면 그 턴에 무조건 써야 한다 */
-export type CardKind = 'jump' | 'again' | 'supply' | 'back' | 'confiscate' | 'nap';
-export const CARDS: Record<CardKind, { good: boolean; emoji: string; name: string; desc: string; pick?: true }> = {
-  jump: { good: true, emoji: '⚡', name: '벽 넘기', desc: '바로 옆을 막은 벽을 넘어 한 칸 이동해요', pick: true },
+export type CardKind = 'jump' | 'dash' | 'push' | 'again' | 'supply' | 'back' | 'confiscate' | 'nap' | 'oneway' | 'swap';
+export const CARDS: Record<CardKind, { good: boolean; emoji: string; name: string; desc: string; pick?: string }> = {
+  jump: { good: true, emoji: '⚡', name: '벽 넘기', desc: '바로 옆을 막은 벽을 넘어 한 칸 이동해요', pick: '넘어갈 칸을 눌러요' },
+  dash: { good: true, emoji: '💨', name: '질주', desc: '한 방향으로 2칸이나 3칸을 한 번에 달려요', pick: '달려갈 칸을 눌러요' },
+  push: { good: true, emoji: '👋', name: '밀치기', desc: '상대 말을 원하는 쪽으로 한 칸 옮겨요', pick: '상대 말을 보낼 칸을 눌러요' },
   again: { good: true, emoji: '🔁', name: '한 번 더', desc: '이번 턴에 두 번 연달아 둘 수 있어요' },
   supply: { good: true, emoji: '🧱', name: '벽 보급', desc: '벽을 3개 더 받아요' },
-  back: { good: false, emoji: '🐢', name: '뒷걸음질', desc: '뒤로 한 칸 물러나야 해요', pick: true },
+  back: { good: false, emoji: '🐢', name: '뒷걸음질', desc: '뒤로 한 칸 물러나야 해요', pick: '물러날 칸을 골라요' },
   confiscate: { good: false, emoji: '💥', name: '벽 압수', desc: '내 벽 2개를 잃어요' },
-  nap: { good: false, emoji: '😴', name: '낮잠', desc: '이번 턴은 아무것도 못 하고 쉬어요' },
+  nap: { good: false, emoji: '🧊', name: '얼음', desc: '꽁꽁 얼어서 이번 턴은 쉬어요' },
+  oneway: { good: false, emoji: '🧭', name: '한 방향만', desc: '이번 턴과 다음 턴, 말은 정해진 한 방향으로만 갈 수 있어요' },
+  swap: { good: false, emoji: '🔄', name: '자리 바꾸기', desc: '상대 말과 내 말의 자리가 바뀌어요' },
 };
 
 export type State = {
@@ -35,8 +39,14 @@ export type State = {
   left: [number, number];
   /** 남은 필살기(벽 넘기) 횟수. 예전 저장본엔 없을 수 있다 */
   ult?: [number, number];
+  /** 'ult' = 필살기 버전. 없으면 일반 버전 */
+  variant?: Variant;
+  /** 필살기 버전: 도착하면 필살기 1회를 얻는 🎁 칸 (먹으면 사라진다) */
+  spots?: Cell[];
   /** 뽑았지만 아직 안 쓴 필살기 카드 (뽑은 사람 차례가 유지된다) */
-  card?: { p: Player; k: CardKind } | null;
+  card?: { p: Player; k: CardKind; d?: number } | null;
+  /** '한 방향만' 카드: p 가 앞으로 n 번 두는 동안 말은 DIRS[d] 방향으로만 */
+  lock?: { p: Player; d: number; n: number } | null;
   /** '한 번 더' 카드로 한 번 더 두는 사람 */
   bonus?: Player | null;
   turn: Player;
@@ -49,16 +59,40 @@ export type State = {
 
 export const N = 9;
 export const WALLS_EACH = 10;
-export const ULT_EACH = 1;
+export type Variant = 'classic' | 'ult';
+/** 필살기 버전 🎁 칸 개수 */
+export const SPOT_COUNT = 5;
 const GOAL: [number, number] = [0, N - 1];
-const DIRS: Cell[] = [
+export const DIRS: Cell[] = [
   [-1, 0],
   [1, 0],
   [0, -1],
   [0, 1],
 ];
 
-export function newGame(first: Player = 0): State {
+/**
+ * 🎁 칸 5개: 한가운데 1개 + 판을 180° 돌렸을 때 겹치는 2쌍.
+ * 양쪽에 똑같이 유리하도록 대칭으로 놓는다. 출발·도착 줄은 피한다.
+ */
+export function makeSpots(rand = Math.random): Cell[] {
+  const mid = (N - 1) / 2;
+  const out: Cell[] = [[mid, mid]];
+  const used = new Set([`${mid}${mid}`]);
+  while (out.length < SPOT_COUNT) {
+    const r = 1 + Math.floor(rand() * (mid - 1)); // 1..3행 (상대 쪽 절반)
+    const c = Math.floor(rand() * N);
+    const mr = N - 1 - r;
+    const mc = N - 1 - c;
+    if (used.has(`${r}${c}`) || used.has(`${mr}${mc}`)) continue;
+    // 서로 바로 붙어 있으면 몰려 보이니 피한다
+    if (out.some(([a, b]) => Math.abs(a - r) + Math.abs(b - c) < 2)) continue;
+    used.add(`${r}${c}`).add(`${mr}${mc}`);
+    out.push([r, c], [mr, mc]);
+  }
+  return out;
+}
+
+export function newGame(first: Player = 0, variant: Variant = 'classic'): State {
   return {
     pawns: [
       [N - 1, 4],
@@ -66,9 +100,12 @@ export function newGame(first: Player = 0): State {
     ],
     walls: [],
     left: [WALLS_EACH, WALLS_EACH],
-    ult: [ULT_EACH, ULT_EACH],
+    ult: [0, 0],
+    variant,
+    spots: variant === 'ult' ? makeSpots() : [],
     card: null,
     bonus: null,
+    lock: null,
     turn: first,
     first,
     winner: null,
@@ -117,7 +154,7 @@ export function pawnMoves(s: State, p: Player = s.turn): Cell[] {
   return out;
 }
 
-export const ultLeft = (s: State, p: Player = s.turn) => (s.ult ?? [ULT_EACH, ULT_EACH])[p];
+export const ultLeft = (s: State, p: Player = s.turn) => (s.ult ?? [0, 0])[p];
 
 /** 필살기: 바로 옆 칸 중 벽에 막힌 곳으로 벽을 넘어 한 칸 이동 */
 export function ultMoves(s: State, p: Player = s.turn): Cell[] {
@@ -134,31 +171,99 @@ export function ultMoves(s: State, p: Player = s.turn): Cell[] {
   return out;
 }
 
+/** 이번 차례에 말이 갈 수 있는 칸 ('한 방향만'에 걸려 있으면 그 방향만) */
+export function stepMoves(s: State, p: Player = s.turn): Cell[] {
+  const all = pawnMoves(s, p);
+  const lock = s.lock?.p === p ? s.lock : null;
+  if (!lock) return all;
+  const [dr, dc] = DIRS[lock.d];
+  const [r, c] = s.pawns[p];
+  const ok = all.filter(([nr, nc]) => Math.sign(nr - r) === dr && Math.sign(nc - c) === dc);
+  // 그 방향이 막혔고 벽도 없으면 꼼짝 못 하니 풀어 준다
+  return ok.length || s.left[p] > 0 ? ok : all;
+}
+
+/** '한 방향만'으로 걸 수 있는 방향: 앞으로 가는 쪽은 빼고, 지금 갈 수 있는 쪽 */
+function lockDirs(s: State, p: Player = s.turn): number[] {
+  const [r, c] = s.pawns[p];
+  const fwd = GOAL[p] < r ? -1 : 1;
+  return DIRS.map((_, i) => i).filter((i) => {
+    const [dr, dc] = DIRS[i];
+    if (dr === fwd) return false;
+    return pawnMoves(s, p).some(([nr, nc]) => Math.sign(nr - r) === dr && Math.sign(nc - c) === dc);
+  });
+}
+
 /** 뒷걸음질: 갈 수 있는 칸 중 목표에서 멀어지는 곳 */
 export function backMoves(s: State, p: Player = s.turn): Cell[] {
   const from = Math.abs(s.pawns[p][0] - GOAL[p]);
   return pawnMoves(s, p).filter(([r]) => Math.abs(r - GOAL[p]) > from);
 }
 
+/** 질주: 한 방향으로 벽·상대 말에 막히지 않고 2칸 또는 3칸 */
+export function dashMoves(s: State, p: Player = s.turn): Cell[] {
+  const k = keys(s.walls);
+  const [or, oc] = s.pawns[1 - p];
+  const out: Cell[] = [];
+  for (const [dr, dc] of DIRS) {
+    let [r, c] = s.pawns[p];
+    for (let step = 1; step <= 3; step++) {
+      if (!canStep(k, r, c, dr, dc)) break;
+      r += dr;
+      c += dc;
+      if (r === or && c === oc) break;
+      if (step >= 2) out.push([r, c]);
+    }
+  }
+  return out;
+}
+
+/** 밀치기: 상대 말이 한 칸 갈 수 있는 곳 (상대 도착 줄은 빼고) */
+export function pushMoves(s: State, p: Player = s.turn): Cell[] {
+  const o = (1 - p) as Player;
+  const k = keys(s.walls);
+  const [r, c] = s.pawns[o];
+  const [mr, mc] = s.pawns[p];
+  return DIRS.filter(([dr, dc]) => canStep(k, r, c, dr, dc))
+    .map(([dr, dc]): Cell => [r + dr, c + dc])
+    .filter(([nr, nc]) => (nr !== mr || nc !== mc) && nr !== GOAL[o]);
+}
+
 /** 지금 들고 있는 카드로 고를 수 있는 칸 */
 export function cardMoves(s: State): Cell[] {
   const k = s.card?.k;
-  return k === 'jump' ? ultMoves(s) : k === 'back' ? backMoves(s) : [];
+  if (k === 'jump') return ultMoves(s);
+  if (k === 'dash') return dashMoves(s);
+  if (k === 'push') return pushMoves(s);
+  if (k === 'back') return backMoves(s);
+  return [];
 }
 
 /** 지금 판에서 실제로 쓸 수 있는 카드인지 (못 쓰는 카드는 안 나오게) */
 function usable(s: State, k: CardKind) {
   if (k === 'jump') return ultMoves(s).length > 0;
   if (k === 'back') return backMoves(s).length > 0;
+  if (k === 'dash') return dashMoves(s).length > 0;
+  if (k === 'push') return pushMoves(s).length > 0;
+  if (k === 'oneway') return lockDirs(s).length > 0;
+  if (k === 'swap') {
+    // 나한테 손해일 때만 나쁜 카드로 나온다
+    const p = s.turn;
+    const o = (1 - p) as Player;
+    return distance(s.walls, s.pawns[o], GOAL[p]) > distance(s.walls, s.pawns[p], GOAL[p]);
+  }
   if (k === 'confiscate') return s.left[s.turn] > 0;
   return true;
 }
 
 /** 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나 */
-export function drawCard(s: State, rand = Math.random): CardKind {
+export function drawCard(s: State, rand = Math.random): { k: CardKind; d?: number } {
   const good = rand() < 0.5;
   const pool = (Object.keys(CARDS) as CardKind[]).filter((k) => CARDS[k].good === good && usable(s, k));
-  return pool[Math.floor(rand() * pool.length)];
+  const k = pool[Math.floor(rand() * pool.length)];
+  if (k !== 'oneway') return { k };
+  const dirs = lockDirs(s);
+  return { k, d: dirs[Math.floor(rand() * dirs.length)] };
 }
 
 /** 벽만 고려한 목표까지 최단 칸 수. 길이 없으면 -1 */
@@ -203,6 +308,7 @@ export function wallProblem(s: State, o: Orient, r: number, c: number): WallProb
 
 /** 한 수를 마치고 차례를 넘긴다. '한 번 더' 중이면 한 번은 차례를 지킨다 */
 function endAction(next: State, p: Player) {
+  if (next.lock?.p === p) next.lock = next.lock.n > 1 ? { ...next.lock, n: next.lock.n - 1 } : null;
   if (next.bonus === p) {
     next.bonus = null;
     next.turn = p;
@@ -213,6 +319,16 @@ function endAction(next: State, p: Player) {
 
 const withPawn = (s: State, p: Player, r: number, c: number): [Cell, Cell] =>
   p === 0 ? [[r, c], s.pawns[1]] : [s.pawns[0], [r, c]];
+
+/** 말을 옮기고, 🎁 칸에 닿았으면 그 칸을 먹고 필살기 1회를 얻는다 */
+function movePawn(s: State, next: State, p: Player, r: number, c: number) {
+  next.pawns = withPawn(s, p, r, c);
+  const spots = s.spots ?? [];
+  if (!spots.some(([a, b]) => a === r && b === c)) return;
+  next.spots = spots.filter(([a, b]) => a !== r || b !== c);
+  const u = s.ult ?? [0, 0];
+  next.ult = p === 0 ? [u[0] + 1, u[1]] : [u[0], u[1] + 1];
+}
 const addWalls = (s: State, p: Player, d: number): [number, number] =>
   p === 0 ? [Math.max(0, s.left[0] + d), s.left[1]] : [s.left[0], Math.max(0, s.left[1] + d)];
 
@@ -228,9 +344,13 @@ export function apply(s: State, m: Move): State | null {
     next.card = null;
     if (m.t === 'move' && CARDS[card].pick) {
       if (!cardMoves(s).some(([r, c]) => r === m.r && c === m.c)) return null;
-      next.pawns = withPawn(s, p, m.r, m.c);
-      next.last = card === 'jump' ? { t: 'move', r: m.r, c: m.c, ult: true } : { t: 'move', r: m.r, c: m.c };
-      if (m.r === GOAL[p]) next.winner = p;
+      next.last = card === 'back' ? { t: 'move', r: m.r, c: m.c } : { t: 'move', r: m.r, c: m.c, ult: true };
+      if (card === 'push') {
+        next.pawns = withPawn(s, (1 - p) as Player, m.r, m.c);
+      } else {
+        movePawn(s, next, p, m.r, m.c);
+        if (m.r === GOAL[p]) next.winner = p;
+      }
       endAction(next, p);
       return next;
     }
@@ -238,6 +358,15 @@ export function apply(s: State, m: Move): State | null {
     if (card === 'again') {
       next.bonus = p; // 차례 유지, 이어서 두 번 둔다
       return next;
+    }
+    if (card === 'oneway') {
+      next.lock = { p, d: s.card!.d ?? 1, n: 2 }; // 이번 턴부터 두 번, 차례 유지
+      return next;
+    }
+    if (card === 'swap') {
+      const o = (1 - p) as Player;
+      next.pawns = [s.pawns[1], s.pawns[0]];
+      if (next.pawns[o][0] === GOAL[o]) next.winner = o;
     }
     if (card === 'supply') next.left = addWalls(s, p, 3);
     if (card === 'confiscate') next.left = addWalls(s, p, -2);
@@ -247,15 +376,16 @@ export function apply(s: State, m: Move): State | null {
 
   if (m.t === 'draw') {
     if (ultLeft(s, p) <= 0 || !CARDS[m.k] || !usable(s, m.k)) return null;
-    const u = s.ult ?? [ULT_EACH, ULT_EACH];
+    const u = s.ult ?? [0, 0];
     next.ult = p === 0 ? [u[0] - 1, u[1]] : [u[0], u[1] - 1];
-    next.card = { p, k: m.k };
+    if (m.k === 'oneway' && (m.d === undefined || !lockDirs(s, p).includes(m.d))) return null;
+    next.card = m.k === 'oneway' ? { p, k: m.k, d: m.d } : { p, k: m.k };
     return next;
   }
   if (m.t === 'card') return null;
   if (m.t === 'move') {
-    if (m.ult || !pawnMoves(s, p).some(([r, c]) => r === m.r && c === m.c)) return null;
-    next.pawns = withPawn(s, p, m.r, m.c);
+    if (m.ult || !stepMoves(s, p).some(([r, c]) => r === m.r && c === m.c)) return null;
+    movePawn(s, next, p, m.r, m.c);
     if (m.r === GOAL[p]) next.winner = p;
   } else {
     if (wallProblem(s, m.o, m.r, m.c)) return null;

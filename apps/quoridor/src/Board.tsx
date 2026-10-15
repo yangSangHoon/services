@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
-import { N, goalRow, parseWall, pawnMoves, cardMoves, type Cell, type Orient, type Player, type State } from './game';
+import { CARDS, N, goalRow, parseWall, stepMoves, cardMoves, type Cell, type Orient, type Player, type State } from './game';
 
 /** 보드 좌표(viewBox 단위). 칸 10, 홈 2.6 */
 const CELL = 10;
@@ -60,7 +60,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
   };
 
   const targets: Cell[] =
-    !active || state.winner !== null ? [] : mode === 'move' ? pawnMoves(state) : mode === 'ult' ? cardMoves(state) : [];
+    !active || state.winner !== null ? [] : mode === 'move' ? stepMoves(state) : mode === 'ult' ? cardMoves(state) : [];
   const last = state.last;
 
   const wallRect = (o: Orient, r: number, c: number) => {
@@ -95,8 +95,14 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
         <rect className="last-cell" x={cr(last.c) * S} y={cr(last.r) * S} width={CELL} height={CELL} rx={1.6} />
       )}
 
+      {(state.spots ?? []).map(([r, c]) => (
+        <text key={`s${r}${c}`} className="spot" x={cr(c) * S + CELL / 2} y={cr(r) * S + CELL / 2} textAnchor="middle" dominantBaseline="central">
+          🎁
+        </text>
+      ))}
+
       {targets.map(([r, c]) => (
-        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? (state.card?.k === 'back' ? 'is-curse' : 'is-ult') : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
+        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? (CARDS[state.card?.k ?? 'jump'].good ? 'is-ult' : 'is-curse') : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
       ))}
 
       {state.walls.map((w) => {
@@ -112,7 +118,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
         return (
           <g
             key={p}
-            className={`pawn p${p} ${last?.t === 'move' && last.ult && state.turn !== p ? 'is-ult' : ''} ${state.turn === p && state.winner === null ? 'is-turn' : ''} ${state.winner === p ? 'is-winner' : ''}`}
+            className={`pawn p${p} ${last?.t === 'move' && last.ult && last.r === r && last.c === c ? 'is-ult' : ''} ${state.turn === p && state.winner === null ? 'is-turn' : ''} ${state.winner === p ? 'is-winner' : ''}`}
             style={{ transform: `translate(${cr(c) * S + CELL / 2}px, ${cr(r) * S + CELL / 2}px)` }}
           >
             <circle className="pawn-ring" r={4.6} />

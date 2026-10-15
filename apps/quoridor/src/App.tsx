@@ -3,7 +3,7 @@ import { PopNumber, SwapText, usePresence } from '@lab/core/motion';
 import { track } from '@lab/core/track';
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
 import Board, { type BoardProps, type Ghost } from './Board';
-import { CARDS, ULT_EACH, WALLS_EACH, apply, distance, drawCard, goalRow, newGame, ultLeft, wallProblem, type Move, type Orient, type Player, type State } from './game';
+import { CARDS, SPOT_COUNT, WALLS_EACH, apply, distance, drawCard, goalRow, newGame, ultLeft, wallProblem, type Move, type Orient, type Player, type State, type Variant } from './game';
 import { createRoom, newRoomCode, useRoom } from './online';
 
 const COLOR_NAME = ['파랑', '주황'] as const;
@@ -46,6 +46,9 @@ function GameBoard(props: BoardProps) {
   );
 }
 
+/** DIRS 순서(위·아래·왼·오른쪽, 판 기준)를 보는 사람 화면 기준 화살표로 */
+const dirArrow = (d: number, flip: boolean) => (flip ? ['↓', '↑', '→', '←'] : ['↑', '↓', '←', '→'])[d];
+
 const buzz = (ms: number | number[] = 8) => navigator.vibrate?.(ms);
 
 // ───────── 라우팅: #local · #r=CODE · 처음 화면
@@ -80,10 +83,11 @@ export default function App() {
 
 function Home() {
   const [rules, setRules] = useState(false);
+  const [variant, setVariant] = useState<Variant>('classic');
 
   const startOnline = () => {
     const code = newRoomCode();
-    createRoom(code);
+    createRoom(code, variant);
     track('quoridor', 'online');
     go(`r=${code}`);
   };
@@ -96,11 +100,29 @@ function Home() {
         <p className="muted">벽을 세워 상대를 돌아가게 만들고, 먼저 반대편 끝에 닿으면 승리!</p>
       </div>
 
+      <div className="variant" role="radiogroup" aria-label="게임 방식">
+        <label className={variant === 'classic' ? 'is-on' : ''}>
+          <input type="radio" name="variant" checked={variant === 'classic'} onChange={() => setVariant('classic')} />
+          <span>
+            <b>🧱 일반 버전</b>
+            <small>정식 쿼리도 규칙</small>
+          </span>
+        </label>
+        <label className={variant === 'ult' ? 'is-on is-ult' : ''}>
+          <input type="radio" name="variant" checked={variant === 'ult'} onChange={() => setVariant('ult')} />
+          <span>
+            <b>🎁 필살기 버전으로 시작하기</b>
+            <small>🎁 칸에 도착하면 랜덤 필살기 획득</small>
+          </span>
+        </label>
+      </div>
+
       <div className="choices">
         <button
           className="choice"
           onClick={() => {
             track('quoridor', 'local');
+            startLocal(variant);
             go('local');
           }}
         >
@@ -154,7 +176,7 @@ function Rules() {
         <b>뛰어넘기</b> 말끼리 마주 보면 넘어갈 수 있어요. 뒤가 막혀 있으면 옆 대각선으로.
       </li>
       <li>
-        <b>🎁 필살기</b> 한 판에 {ULT_EACH}번. 뭐가 나올지는 눌러 봐야 알아요. 반은 좋은 카드, 반은 나쁜 카드! 뽑은 카드는 그 턴에 무조건 써야 해요.
+        <b>🎁 필살기 버전</b> 판 위 🎁 칸 {SPOT_COUNT}곳에 먼저 도착하면 필살기 1회를 얻어요. 내 차례에 🎁 버튼으로 뽑는데, 뭐가 나올지는 뽑아 봐야 알아요. 반은 좋은 카드(벽 넘기·질주·밀치기·한 번 더·벽 보급), 반은 나쁜 카드(뒷걸음질·벽 압수·얼음·한 방향만·자리 바꾸기)! 뽑은 카드는 그 턴에 무조건 써야 해요.
       </li>
     </ol>
   );
@@ -214,10 +236,23 @@ function Match({
   // 차례가 넘어가면(또는 '한 번 더'로 이어 두면) 화면 가운데에 잠깐 알림
   const [turnToast, setTurnToast] = useState<{ id: number; p: Player; text: string } | null>(null);
   const prevTurn = useRef(state.turn);
+  const prevUlt = useRef(state.ult ?? [0, 0]);
   useEffect(() => {
     const changed = prevTurn.current !== state.turn;
     prevTurn.current = state.turn;
+    const was = prevUlt.current;
+    const now = state.ult ?? [0, 0];
+    prevUlt.current = now;
     if (state.moves === 0 || state.winner !== null) return;
+    // 🎁 칸을 먹었으면 획득 알림을 먼저
+    const got = ([0, 1] as Player[]).find((p) => now[p] > was[p] && state.last?.t === 'move');
+    if (got !== undefined) {
+      const seat = seats[got];
+      setTurnToast({ id: state.moves, p: got, text: `🎁 ${seat.me ? '' : seat.name + ' '}필살기 획득!` });
+      buzz([30, 50, 30]);
+      const t = setTimeout(() => setTurnToast(null), 1400);
+      return () => clearTimeout(t);
+    }
     const again = !changed && (state.last?.t === 'move' || state.last?.t === 'wall');
     if (!changed && !again) return;
     const seat = seats[state.turn];
@@ -248,7 +283,7 @@ function Match({
     if (!card || !myCard) return;
     if (card.pick) {
       setMode('ult');
-      setHint(card.good ? '넘어갈 칸을 눌러요' : '물러날 칸을 골라요');
+      setHint(card.pick);
     } else {
       onMove({ t: 'card' });
     }
@@ -256,6 +291,8 @@ function Match({
 
   const left = state.left[state.turn];
   const ult = ultLeft(state);
+  const isUlt = state.variant === 'ult';
+  const lock = state.lock?.p === state.turn ? state.lock : null;
   const boardMode = myCard ? (card!.pick && !revealOpen ? 'ult' : 'wall-none') : mode;
   const bottom: Player = flip ? 1 : 0;
   const top = (1 - bottom) as Player;
@@ -313,7 +350,7 @@ function Match({
             )}
           </div>
         ) : (
-          <div className="seg" role="tablist" aria-label="할 일">
+          <div className={`seg ${isUlt ? 'has-ult' : ''}`} role="tablist" aria-label="할 일">
             <button role="tab" aria-selected={mode === 'move'} className={mode === 'move' ? 'is-on' : ''} onClick={() => setMode('move')} disabled={!canPlay}>
               🚶 이동
             </button>
@@ -329,16 +366,21 @@ function Match({
             >
               🧱 벽 <span className="count">{left}</span>
             </button>
-            <button
-              className="ult-tab"
-              onClick={() => {
-                if (onMove({ t: 'draw', k: drawCard(state) })) setMode('move');
-              }}
-              disabled={!canPlay || ult <= 0 || !!state.bonus}
-            >
-              🎁 필살기 <span className="count">{ult ? '?' : 0}</span>
-            </button>
+            {isUlt && (
+              <button
+                className={`ult-tab ${ult > 0 ? 'is-ready' : ''}`}
+                onClick={() => {
+                  if (onMove({ t: 'draw', ...drawCard(state) })) setMode('move');
+                }}
+                disabled={!canPlay || ult <= 0 || !!state.bonus}
+              >
+                🎁 필살기 <span className="count">{ult}</span>
+              </button>
+            )}
           </div>
+        )}
+        {lock && canPlay && !myCard && mode === 'move' && (
+          <p className="hint ult-hint">🧭 이번 턴은 {dirArrow(lock.d, flip)} 방향으로만 갈 수 있어요{lock.n > 1 ? ' (다음 턴까지)' : ''}</p>
         )}
         {mode === 'wall' && canPlay && !myCard && (
           <div className="wall-actions">
@@ -377,6 +419,9 @@ function Match({
             <p className="muted">
               {myCard || !card ? shownCard.desc : `${seats[state.turn].name}가 뽑았어요 · ${shownCard.desc}`}
             </p>
+            {state.card?.k === 'oneway' && state.card.d !== undefined && (
+              <p className="lock-dir">{dirArrow(state.card.d, flip)}</p>
+            )}
             {myCard ? (
               <button className="primary wide" onClick={useCard}>
                 {shownCard.good ? '사용하기' : '받아들이기…'}
@@ -422,9 +467,14 @@ function PlayerCard({ state, p, seat }: { state: State; p: Player; seat: Seat })
       <span className="meta">
         목표까지 <PopNumber value={dist} />칸
       </span>
-      <span className={`ult-mark ${ultLeft(state, p) > 0 ? 'on' : ''}`} aria-label={`필살기 ${ultLeft(state, p)}번 남음`}>
-        ⚡
-      </span>
+      {state.variant === 'ult' ? (
+        <span className={`ult-mark ${ultLeft(state, p) > 0 ? 'on' : ''}`} aria-label={`필살기 ${ultLeft(state, p)}번 남음`}>
+          🎁{ultLeft(state, p) > 1 ? `×${ultLeft(state, p)}` : ''}
+          {state.lock?.p === p && ' 🧭'}
+        </span>
+      ) : (
+        <span />
+      )}
       <span className="pips" aria-label={`남은 벽 ${state.left[p]}개`}>
         {Array.from({ length: Math.max(WALLS_EACH, state.left[p]) }, (_, i) => (
           <i key={i} className={i < state.left[p] ? 'on' : ''} />
@@ -437,6 +487,18 @@ function PlayerCard({ state, p, seat }: { state: State; p: Player; seat: Seat })
 // ───────── 한 폰으로 둘이서
 
 const LOCAL_KEY = 'quoridor:local';
+
+/** 처음 화면에서 시작: 하던 판이 같은 방식이고 안 끝났으면 이어서, 아니면 새 판 */
+function startLocal(variant: Variant) {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    const prev = raw ? (JSON.parse(raw) as State) : null;
+    const same = prev && (prev.variant ?? 'classic') === variant && prev.winner === null && prev.moves > 0;
+    if (!same) localStorage.setItem(LOCAL_KEY, JSON.stringify(newGame(0, variant)));
+  } catch {
+    /* 저장 못 하면 loadLocal 이 새 판을 만든다 */
+  }
+}
 
 function loadLocal(): State {
   try {
@@ -485,7 +547,7 @@ function LocalGame() {
           ↩
         </button>
       }
-      onRematch={() => setHistory([newGame((1 - state.first) as Player)])}
+      onRematch={() => setHistory([newGame((1 - state.first) as Player, state.variant)])}
       onExit={() => go('')}
     />
   );

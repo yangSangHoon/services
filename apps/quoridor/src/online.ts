@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@lab/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apply, newGame, type Move, type Player, type State } from './game';
+import { apply, newGame, type Move, type Player, type State, type Variant } from './game';
 
 /**
  * 온라인 1:1. DB 없이 Realtime broadcast 로 방 상태 전체를 주고받는다.
@@ -60,8 +60,8 @@ export function newRoomCode() {
   return Array.from(bytes, (b) => abc[b % abc.length]).join('');
 }
 
-export function createRoom(code: string) {
-  save({ code, players: [myId, null], seq: 1, game: newGame(0) });
+export function createRoom(code: string, variant: Variant = 'classic') {
+  save({ code, players: [myId, null], seq: 1, game: newGame(0, variant) });
 }
 
 const newer = (a: Room, b: Room) => a.seq > b.seq || (a.seq === b.seq && JSON.stringify(a) > JSON.stringify(b));
@@ -173,7 +173,7 @@ export function useRoom(code: string) {
   const rematch = useCallback(() => {
     const r = roomRef.current;
     if (!r) return;
-    commit({ ...r, game: newGame((1 - r.game.first) as Player), seq: r.seq + 1 });
+    commit({ ...r, game: newGame((1 - r.game.first) as Player, r.game.variant), seq: r.seq + 1 });
   }, [commit]);
 
   return { room, role, connected, peerOnline, play, rematch };

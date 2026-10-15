@@ -2,7 +2,7 @@ import { Line, RoundedBox } from '@react-three/drei';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Color, MathUtils, type Group, type Mesh, type MeshStandardMaterial } from 'three';
-import { N, goalRow, parseWall, pawnMoves, cardMoves, type Cell, type Orient, type Player } from './game';
+import { N, goalRow, parseWall, stepMoves, cardMoves, CARDS, type Cell, type Orient, type Player } from './game';
 import type { BoardProps } from './Board';
 
 /** 보드 좌표(월드 단위). SVG 판과 같은 칸 10, 홈 2.6 — 판 가운데가 원점, 화면 아래쪽이 +z */
@@ -115,9 +115,9 @@ function Scene({ state, flip, mode, active, ghost, onCell, onAim }: BoardProps) 
   }, []);
 
   const targets: Cell[] =
-    !active || state.winner !== null ? [] : mode === 'move' ? pawnMoves(state) : mode === 'ult' ? cardMoves(state) : [];
+    !active || state.winner !== null ? [] : mode === 'move' ? stepMoves(state) : mode === 'ult' ? cardMoves(state) : [];
   const last = state.last;
-  const targetColor = mode === 'ult' ? (state.card?.k === 'back' ? '#7c3aed' : '#ffb703') : pal[`p${state.turn}` as 'p0' | 'p1'];
+  const targetColor = mode === 'ult' ? (CARDS[state.card?.k ?? 'jump'].good ? '#ffb703' : '#7c3aed') : pal[`p${state.turn}` as 'p0' | 'p1'];
 
   const wallPos = (o: Orient, r: number, c: number) => {
     const vr = wr(r);
@@ -168,6 +168,11 @@ function Scene({ state, flip, mode, active, ghost, onCell, onAim }: BoardProps) 
       {/* 마지막으로 움직인 칸 */}
       {last?.t === 'move' && <LastCell x={at(cr(last.c))} z={at(cr(last.r))} color={pal.fg} />}
 
+      {/* 🎁 필살기 칸 */}
+      {(state.spots ?? []).map(([r, c]) => (
+        <Spot key={`s${r}${c}`} x={at(cr(c))} z={at(cr(r))} />
+      ))}
+
       {/* 갈 수 있는 칸 */}
       {targets.map(([r, c]) => (
         <Target key={`${r}${c}`} x={at(cr(c))} z={at(cr(r))} color={targetColor} pulse={mode === 'ult'} />
@@ -194,7 +199,7 @@ function Scene({ state, flip, mode, active, ghost, onCell, onAim }: BoardProps) 
             color={pal[`p${p}` as 'p0' | 'p1']}
             turn={state.turn === p && state.winner === null}
             winner={state.winner === p}
-            big={last?.t === 'move' && !!last.ult && state.turn !== p}
+            big={last?.t === 'move' && !!last.ult && last.r === r && last.c === c}
           />
         );
       })}
@@ -225,6 +230,37 @@ function LastCell({ x, z, color }: { x: number; z: number; color: string }) {
     [x - h, y, z - h],
   ];
   return <Line points={pts} color={color} lineWidth={1.5} dashed dashSize={1.4} gapSize={1} transparent opacity={0.3} />;
+}
+
+/** 🎁 칸: 칸 위에 떠서 천천히 도는 선물 상자 */
+function Spot({ x, z }: { x: number; z: number }) {
+  const ref = useRef<Group>(null);
+  useFrame(({ clock }) => {
+    const g = ref.current;
+    if (!g || reduced) return;
+    g.rotation.y = clock.elapsedTime * 0.8 + x;
+    g.position.y = TOP + 2.6 + Math.sin(clock.elapsedTime * 2 + z) * 0.4;
+  });
+  return (
+    <group ref={ref} position={[x, TOP + 2.6, z]}>
+      <mesh castShadow>
+        <boxGeometry args={[3.6, 3.2, 3.6]} />
+        <meshStandardMaterial color="#e63946" roughness={0.5} />
+      </mesh>
+      <mesh>
+        <boxGeometry args={[3.7, 3.3, 0.8]} />
+        <meshStandardMaterial color="#ffd166" roughness={0.4} />
+      </mesh>
+      <mesh>
+        <boxGeometry args={[0.8, 3.3, 3.7]} />
+        <meshStandardMaterial color="#ffd166" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 2, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <torusGeometry args={[0.8, 0.3, 8, 16]} />
+        <meshStandardMaterial color="#ffd166" roughness={0.4} />
+      </mesh>
+    </group>
+  );
 }
 
 function Target({ x, z, color, pulse }: { x: number; z: number; color: string; pulse: boolean }) {

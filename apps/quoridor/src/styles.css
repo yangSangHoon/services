@@ -136,7 +136,7 @@ h1, h2, p, ol { margin: 0; }
 
 .controls { display: flex; flex-direction: column; gap: 10px; margin-top: auto; transition: opacity var(--duration-fast); }
 .controls.is-waiting { opacity: 0.5; }
-.seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
 .seg button { height: 46px; border-radius: 12px; font-weight: 700; font-size: 15px; transition: background-color var(--duration-fast) var(--ease-smooth-out), color var(--duration-fast) var(--ease-smooth-out); }
 .seg button.is-on { background: var(--fg); color: var(--bg); }
 .seg button:disabled { opacity: 1; }
@@ -205,6 +205,7 @@ h1, h2, p, ol { margin: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
+  .ult-tab.is-ready { animation: none; }
   .flip-inner { animation: none; transform: rotateY(180deg); }
   .pawn, .wall.is-new, .target, .target.is-ult, .target.is-curse, .card-panel, .card-verdict, .pawn.is-ult .pawn-body, .pawn.is-turn .pawn-ring, .pawn.is-winner .pawn-body, .turn-toast { animation: none; transition: none; }
 }
@@ -212,3 +213,19 @@ h1, h2, p, ol { margin: 0; }
 /* 2.5D 판 (React Three Fiber) */
 .board3d { aspect-ratio: 1.1; width: min(100%, 68dvh); }
 .board3d canvas { touch-action: none; }
+
+/* 일반 / 필살기 버전 고르기 */
+.variant { display: flex; flex-direction: column; gap: 8px; }
+.variant label { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--line); cursor: pointer; transition: border-color var(--duration-fast), background-color var(--duration-fast); }
+.variant input { width: 18px; height: 18px; margin: 0; accent-color: var(--fg); flex: none; }
+.variant b { display: block; font-size: 15px; }
+.variant small { color: var(--muted); font-size: 13px; }
+.variant label.is-on { border-color: var(--fg); }
+.variant label.is-ult { border-color: #f59e0b; background: rgba(255, 183, 3, 0.1); }
+.variant label.is-ult input { accent-color: #f59e0b; }
+
+.seg.has-ult { grid-template-columns: 1fr 1fr 1fr; }
+.ult-tab.is-ready:not(:disabled) { box-shadow: inset 0 0 0 1.5px #f59e0b; animation: ult-ready 1.4s ease-in-out infinite alternate; }
+@keyframes ult-ready { to { background: rgba(255, 183, 3, 0.18); } }
+.spot { font-size: 6px; pointer-events: none; }
+.lock-dir { font-size: 40px; font-weight: 900; color: #7c3aed; line-height: 1; }

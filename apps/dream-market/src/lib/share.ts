@@ -2,6 +2,9 @@ import { track } from '@lab/core/track';
 import { formatCoins } from './format';
 import type { Dream } from './types';
 
+/** 공유 시트는 폰·태블릿에서만. PC는 바로 링크 복사 */
+export const canShareSheet = typeof navigator.share === 'function' && matchMedia('(pointer: coarse)').matches;
+
 /** #d/<id> = 꿈 하나만 보는 공유 링크 */
 export const dreamLink = (id: string) => `${location.origin}${location.pathname}#d/${id}`;
 
@@ -13,14 +16,14 @@ function shareText(dream: Pick<Dream, 'title' | 'price' | 'status'>) {
 }
 
 /**
- * 공유 시트(모바일)를 열고, 없거나 막히면 링크를 클립보드에 복사한다.
+ * 폰에선 공유 시트를 열고, PC거나 막히면 링크를 클립보드에 복사한다.
  * 'shared' | 'copied' | 'cancel' | 'failed'
  */
 export async function shareDream(dream: Pick<Dream, 'id' | 'title' | 'price' | 'status'>) {
   const url = dreamLink(dream.id);
   const text = shareText(dream);
   track('dream-market', 'share');
-  if (navigator.share) {
+  if (canShareSheet) {
     try {
       await navigator.share({ title: '꿈사꿈팔', text, url });
       return 'shared';

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { dreamLink, shareDream } from '../lib/share';
+import { dreamLink, shareDream, canShareSheet } from '../lib/share';
 import { toast } from '../lib/toast';
 import type { Dream } from '../lib/types';
 
-/** 🔗 공유: 공유 시트 또는 링크 복사. 복사도 막히면 직접 복사할 수 있게 보여준다 */
-export default function ShareButton({ dream, className = '', label = '🔗 공유' }: { dream: Pick<Dream, 'id' | 'title' | 'price' | 'status'>; className?: string; label?: string }) {
+/** 🔗 공유(폰: 공유 시트) / 🔗 링크 복사(PC). 복사도 막히면 직접 복사할 수 있게 보여준다 */
+export default function ShareButton({ dream, className = '', label = canShareSheet ? '🔗 공유' : '🔗 링크 복사' }: { dream: Pick<Dream, 'id' | 'title' | 'price' | 'status'>; className?: string; label?: string }) {
   const [fallback, setFallback] = useState<string | null>(null);
 
   const click = async () => {
@@ -15,7 +15,7 @@ export default function ShareButton({ dream, className = '', label = '🔗 공�
 
   return (
     <>
-      <button type="button" className={`share-btn ${className}`} onClick={click} title="이 꿈 링크 공유하기">
+      <button type="button" className={`share-btn ${className}`} onClick={click} title={canShareSheet ? '이 꿈 링크 공유하기' : '이 꿈 링크 복사하기'}>
         {label}
       </button>
       {fallback && (

@@ -223,7 +223,7 @@ export default function MyDreams({ initialSection, profile, guest, onBack, onSig
                   ) : (
                     <div className="owned-actions">
                       <HaemongButton dream={d} className="btn" label="🔮 AI 해몽" />
-                      <ShareButton dream={d} className="btn" label="🔗 공유" />
+                      <ShareButton dream={d} className="btn" />
                       {!d.review && (
                         <button className="btn" onClick={() => setForm({ id: d.id, kind: 'review' })}>
                           ✍️ 후기 쓰기{!guest && <small>+50만</small>}

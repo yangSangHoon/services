@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    display: flex; align-items: center; gap: 50px; padding: 0 70px 0 90px;
+    font-family: 'Gowun Batang', serif; color: #2a241c;
+    background: radial-gradient(90% 120% at 80% 50%, #f7f3ea, #e6dfd0);
+  }
+  .left { flex: 1; }
+  .kicker { font-size: 26px; letter-spacing: 6px; color: #a8792f; margin-bottom: 22px; }
+  h1 { font-size: 92px; line-height: 1.1; font-weight: 700; letter-spacing: -2px; }
+  .sub { margin-top: 26px; font-size: 30px; color: #7d7365; line-height: 1.5; }
+  .map { position: relative; width: 470px; height: 470px; border-radius: 28px; border: 2px solid #cfc3ab; background:
+    linear-gradient(#ddd4c2 1px, transparent 1px) 0 0 / 78px 78px, linear-gradient(90deg, #ddd4c2 1px, transparent 1px) 0 0 / 78px 78px, #f3eee3;
+    box-shadow: 0 24px 50px rgba(80, 60, 30, .18); }
+  svg { position: absolute; inset: 0; }
+  .pin { position: absolute; width: 26px; height: 26px; border-radius: 50%; background: #fffaf0; border: 4px solid #8a5a1c; transform: translate(-50%, -50%); }
+  .label { position: absolute; font-size: 22px; color: #5d4f3c; background: #f3eee3; padding: 0 6px; transform: translate(-50%, 18px); }
+  .face { position: absolute; width: 96px; height: 96px; border-radius: 50%; background: #fff3c4; border: 5px solid #fffaf0; box-shadow: 0 0 0 26px rgba(168, 121, 47, .22); display: grid; place-items: center; font-size: 54px; transform: translate(-50%, -50%); }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="kicker">TRAVEL MAP</div>
+    <h1>여행 지도</h1>
+    <p class="sub">사진만 올리면 찍은 곳을 따라<br />지도 위에 여정이 그려져요</p>
+  </div>
+  <div class="map">
+    <svg viewBox="0 0 470 470"><path d="M90 110 Q 200 150 250 250 T 390 380" fill="none" stroke="#a8792f" stroke-width="6" stroke-dasharray="14 10" stroke-linecap="round" /></svg>
+    <div class="pin" style="left:90px;top:110px"></div><div class="label" style="left:90px;top:110px">서울</div>
+    <div class="pin" style="left:390px;top:380px"></div><div class="label" style="left:390px;top:380px">교토</div>
+    <div class="face" style="left:250px;top:250px">✈️</div>
+  </div>
+</body>
+</html>

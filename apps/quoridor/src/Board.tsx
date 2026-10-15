@@ -102,7 +102,7 @@ export default function Board({ state, flip, mode, active, ghost, onCell, onAim 
       ))}
 
       {targets.map(([r, c]) => (
-        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? (CARDS[state.card?.k ?? 'jump'].good ? 'is-ult' : 'is-curse') : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
+        <circle key={`${r}${c}`} className={`target p${state.turn} ${mode === 'ult' ? (CARDS[state.card?.k ?? 'jump'].tone === 'bad' ? 'is-curse' : 'is-ult') : ''}`} cx={cr(c) * S + CELL / 2} cy={cr(r) * S + CELL / 2} r={1.9} />
       ))}
 
       {state.walls.map((w) => {

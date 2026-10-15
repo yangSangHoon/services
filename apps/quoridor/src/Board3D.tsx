@@ -117,7 +117,7 @@ function Scene({ state, flip, mode, active, ghost, onCell, onAim }: BoardProps) 
   const targets: Cell[] =
     !active || state.winner !== null ? [] : mode === 'move' ? stepMoves(state) : mode === 'ult' ? cardMoves(state) : [];
   const last = state.last;
-  const targetColor = mode === 'ult' ? (CARDS[state.card?.k ?? 'jump'].good ? '#ffb703' : '#7c3aed') : pal[`p${state.turn}` as 'p0' | 'p1'];
+  const targetColor = mode === 'ult' ? (CARDS[state.card?.k ?? 'jump'].tone === 'bad' ? '#7c3aed' : '#ffb703') : pal[`p${state.turn}` as 'p0' | 'p1'];
 
   const wallPos = (o: Orient, r: number, c: number) => {
     const vr = wr(r);

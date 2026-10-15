@@ -3,7 +3,7 @@ import { PopNumber, SwapText, usePresence } from '@lab/core/motion';
 import { track } from '@lab/core/track';
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
 import Board, { type BoardProps, type Ghost } from './Board';
-import { CARDS, SPOT_COUNT, WALLS_EACH, apply, distance, drawCard, goalRow, newGame, ultLeft, wallProblem, type Move, type Orient, type Player, type State, type Variant } from './game';
+import { CARDS, SPOT_COUNT, WALLS_EACH, apply, cardMoves, distance, drawCard, goalRow, newGame, ultLeft, wallProblem, type Move, type Orient, type Player, type State, type Variant } from './game';
 import { createRoom, newRoomCode, useRoom } from './online';
 
 const COLOR_NAME = ['파랑', '주황'] as const;
@@ -47,6 +47,9 @@ function GameBoard(props: BoardProps) {
 }
 
 /** DIRS 순서(위·아래·왼·오른쪽, 판 기준)를 보는 사람 화면 기준 화살표로 */
+const VERDICT = { good: '좋은 카드!', bad: '앗, 나쁜 카드…', mixed: '🤷 복불복 카드!' } as const;
+const DUD_TEXT = '지금은 넘을 벽이 없어서 못 써요. 카드는 버리고 이번 턴은 그냥 두세요';
+
 const dirArrow = (d: number, flip: boolean) => (flip ? ['↓', '↑', '→', '←'] : ['↑', '↓', '←', '→'])[d];
 
 const buzz = (ms: number | number[] = 8) => navigator.vibrate?.(ms);
@@ -176,7 +179,7 @@ function Rules() {
         <b>뛰어넘기</b> 말끼리 마주 보면 넘어갈 수 있어요. 뒤가 막혀 있으면 옆 대각선으로.
       </li>
       <li>
-        <b>🎁 필살기 버전</b> 판 위 🎁 칸 {SPOT_COUNT}곳에 먼저 도착하면 필살기 1회를 얻어요. 내 차례에 🎁 버튼으로 뽑는데, 뭐가 나올지는 뽑아 봐야 알아요. 반은 좋은 카드(벽 넘기·질주·밀치기·한 번 더·벽 보급), 반은 나쁜 카드(뒷걸음질·벽 압수·얼음·한 방향만·자리 바꾸기)! 뽑은 카드는 그 턴에 무조건 써야 해요.
+        <b>🎁 필살기 버전</b> 판 위 🎁 칸 {SPOT_COUNT}곳에 먼저 도착하면 필살기 1회를 얻어요. 내 차례에 🎁 버튼으로 뽑는데, 뭐가 나올지는 뽑아 봐야 알아요. 반은 좋은 카드(벽 넘기·질주·밀치기·한 번 더·벽 보급), 반은 나쁜 카드(뒷걸음질·벽 압수·얼음·한 방향만)! 자리 바꾸기는 득일지 실일지 모르는 복불복 카드예요. 뽑은 카드는 그 턴에 무조건 써야 해요.
       </li>
     </ol>
   );
@@ -274,14 +277,18 @@ function Match({
     if (card) setShownCard(card);
   }, [card]);
   useEffect(() => {
-    if (card) buzz(card.good ? [20, 40, 20] : 60);
+    if (card) buzz(card.tone === 'bad' ? 60 : [20, 40, 20]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.card?.k, state.card?.p, state.moves]);
+
+  // 뽑았지만 지금은 쓸 수 없는 카드(예: 옆에 넘을 벽이 없는 벽 넘기)
+  const dud = !!card?.pick && cardMoves(state).length === 0;
+  const cardLabel = dud ? '카드 버리기' : card?.tone === 'bad' ? '받아들이기…' : '사용하기';
 
   const useCard = () => {
     setSeenCard(state.moves);
     if (!card || !myCard) return;
-    if (card.pick) {
+    if (card.pick && !dud) {
       setMode('ult');
       setHint(card.pick);
     } else {
@@ -338,14 +345,14 @@ function Match({
 
       <div className={`controls ${canPlay ? '' : 'is-waiting'}`}>
         {myCard ? (
-          <div className={`card-panel ${card!.good ? 'is-good' : 'is-bad'}`}>
+          <div className={`card-panel is-${card!.tone}`}>
             <b>
               {card!.emoji} {card!.name}
             </b>
-            <span>{card!.pick ? hint || card!.desc : card!.desc}</span>
-            {(!card!.pick || revealOpen) && (
+            <span>{dud ? DUD_TEXT : card!.pick ? hint || card!.desc : card!.desc}</span>
+            {(!card!.pick || dud || revealOpen) && (
               <button className="primary wide" onClick={useCard}>
-                {card!.good ? '사용하기' : '받아들이기…'}
+                {cardLabel}
               </button>
             )}
           </div>
@@ -409,12 +416,12 @@ function Match({
         <div className={`sheet-backdrop ${reveal.className}`}>
           <div className={`sheet card-sheet t-dropdown ${reveal.className}`} data-origin="top-center">
             <div className="flip">
-              <div className={`flip-inner ${shownCard.good ? 'is-good' : 'is-bad'}`}>
+              <div className={`flip-inner is-${shownCard.tone}`}>
                 <div className="flip-back">?</div>
                 <div className="flip-front">{shownCard.emoji}</div>
               </div>
             </div>
-            <p className={`card-verdict ${shownCard.good ? 'is-good' : 'is-bad'}`}>{shownCard.good ? '좋은 카드!' : '앗, 나쁜 카드…'}</p>
+            <p className={`card-verdict is-${shownCard.tone}`}>{VERDICT[shownCard.tone]}</p>
             <h2>{shownCard.name}</h2>
             <p className="muted">
               {myCard || !card ? shownCard.desc : `${seats[state.turn].name}가 뽑았어요 · ${shownCard.desc}`}
@@ -424,14 +431,14 @@ function Match({
             )}
             {myCard ? (
               <button className="primary wide" onClick={useCard}>
-                {shownCard.good ? '사용하기' : '받아들이기…'}
+                {cardLabel}
               </button>
             ) : (
               <button className="soft wide" onClick={() => setSeenCard(state.moves)}>
                 확인
               </button>
             )}
-            {myCard && !shownCard.good && <p className="muted small">나쁜 카드도 이번 턴에 꼭 써야 해요</p>}
+            {myCard && shownCard.tone === 'bad' && <p className="muted small">나쁜 카드도 이번 턴에 꼭 써야 해요</p>}
           </div>
         </div>
       )}

@@ -149,6 +149,7 @@ h1, h2, p, ol { margin: 0; }
 .card-panel span { font-size: 14px; }
 .card-panel .primary { margin-top: 4px; }
 .card-panel.is-good { background: rgba(255, 183, 3, 0.14); border-color: #f59e0b; }
+.card-panel.is-mixed { background: rgba(14, 165, 233, 0.12); border-color: #0ea5e9; }
 .card-panel.is-bad { background: rgba(124, 58, 237, 0.12); border-color: #7c3aed; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } }
 .soft.wide { width: 100%; }
@@ -159,10 +160,12 @@ h1, h2, p, ol { margin: 0; }
 .flip-back { background: repeating-linear-gradient(45deg, #3b2a1a, #3b2a1a 8px, #4a3523 8px, #4a3523 16px); color: #ffd166; font-size: 48px; font-weight: 900; }
 .flip-front { transform: rotateY(180deg); font-size: 54px; }
 .is-good .flip-front { background: linear-gradient(135deg, #ffe08a, #ffb703); }
+.is-mixed .flip-front { background: linear-gradient(135deg, #a5e4ff, #0284c7); }
 .is-bad .flip-front { background: linear-gradient(135deg, #b9a4f5, #6d28d9); }
 @keyframes card-flip { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
 .card-verdict { font-weight: 900; font-size: 15px; animation: rise-in var(--duration-slow) var(--ease-smooth-out) 0.7s both; }
 .card-verdict.is-good { color: #d97706; }
+.card-verdict.is-mixed { color: #0284c7; }
 .card-verdict.is-bad { color: #7c3aed; }
 .target.is-curse { fill: #7c3aed; animation: target-in var(--duration-fast) var(--ease-bounce) both, ult-pulse 0.9s ease-in-out infinite alternate; }
 .ult-mark { font-size: 13px; filter: grayscale(1); opacity: 0.35; transition: opacity var(--duration-fast), filter var(--duration-fast); }

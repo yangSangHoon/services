@@ -18,19 +18,23 @@ export type Move =
   /** 칸을 고를 필요 없는 필살기 카드 발동 */
   | { t: 'card' };
 
-/** 필살기 카드. 반은 좋고 반은 나쁘다. 뽑으면 그 턴에 무조건 써야 한다 */
+/**
+ * 필살기 카드. 반은 좋고 반은 나쁘다. 뽑으면 그 턴에 무조건 써야 한다.
+ * 'mixed'(자리 바꾸기)는 상황 따라 득도 실도 되는 복불복이라 좋은·나쁜 쪽 어디서든 나온다.
+ */
 export type CardKind = 'jump' | 'dash' | 'push' | 'again' | 'supply' | 'back' | 'confiscate' | 'nap' | 'oneway' | 'swap';
-export const CARDS: Record<CardKind, { good: boolean; emoji: string; name: string; desc: string; pick?: string }> = {
-  jump: { good: true, emoji: '⚡', name: '벽 넘기', desc: '바로 옆을 막은 벽을 넘어 한 칸 이동해요', pick: '넘어갈 칸을 눌러요' },
-  dash: { good: true, emoji: '💨', name: '질주', desc: '한 방향으로 2칸이나 3칸을 한 번에 달려요', pick: '달려갈 칸을 눌러요' },
-  push: { good: true, emoji: '👋', name: '밀치기', desc: '상대 말을 원하는 쪽으로 한 칸 옮겨요', pick: '상대 말을 보낼 칸을 눌러요' },
-  again: { good: true, emoji: '🔁', name: '한 번 더', desc: '이번 턴에 두 번 연달아 둘 수 있어요' },
-  supply: { good: true, emoji: '🧱', name: '벽 보급', desc: '벽을 3개 더 받아요' },
-  back: { good: false, emoji: '🐢', name: '뒷걸음질', desc: '뒤로 한 칸 물러나야 해요', pick: '물러날 칸을 골라요' },
-  confiscate: { good: false, emoji: '💥', name: '벽 압수', desc: '내 벽 2개를 잃어요' },
-  nap: { good: false, emoji: '🧊', name: '얼음', desc: '꽁꽁 얼어서 이번 턴은 쉬어요' },
-  oneway: { good: false, emoji: '🧭', name: '한 방향만', desc: '이번 턴과 다음 턴, 말은 정해진 한 방향으로만 갈 수 있어요' },
-  swap: { good: false, emoji: '🔄', name: '자리 바꾸기', desc: '상대 말과 내 말의 자리가 바뀌어요' },
+export type Tone = 'good' | 'bad' | 'mixed';
+export const CARDS: Record<CardKind, { tone: Tone; emoji: string; name: string; desc: string; pick?: string }> = {
+  jump: { tone: 'good', emoji: '⚡', name: '벽 넘기', desc: '바로 옆을 막은 벽을 넘어 한 칸 이동해요', pick: '넘어갈 칸을 눌러요' },
+  dash: { tone: 'good', emoji: '💨', name: '질주', desc: '한 방향으로 2칸이나 3칸을 한 번에 달려요', pick: '달려갈 칸을 눌러요' },
+  push: { tone: 'good', emoji: '👋', name: '밀치기', desc: '상대 말을 원하는 쪽으로 한 칸 옮겨요', pick: '상대 말을 보낼 칸을 눌러요' },
+  again: { tone: 'good', emoji: '🔁', name: '한 번 더', desc: '이번 턴에 두 번 연달아 둘 수 있어요' },
+  supply: { tone: 'good', emoji: '🧱', name: '벽 보급', desc: '벽을 3개 더 받아요' },
+  back: { tone: 'bad', emoji: '🐢', name: '뒷걸음질', desc: '뒤로 한 칸 물러나야 해요', pick: '물러날 칸을 골라요' },
+  confiscate: { tone: 'bad', emoji: '💥', name: '벽 압수', desc: '내 벽 2개를 잃어요' },
+  nap: { tone: 'bad', emoji: '🧊', name: '얼음', desc: '꽁꽁 얼어서 이번 턴은 쉬어요' },
+  oneway: { tone: 'bad', emoji: '🧭', name: '한 방향만', desc: '이번 턴과 다음 턴, 말은 정해진 한 방향으로만 갈 수 있어요' },
+  swap: { tone: 'mixed', emoji: '🔄', name: '자리 바꾸기', desc: '상대 말과 내 말의 자리가 바뀌어요' },
 };
 
 export type State = {
@@ -239,19 +243,12 @@ export function cardMoves(s: State): Cell[] {
   return [];
 }
 
-/** 지금 판에서 실제로 쓸 수 있는 카드인지 (못 쓰는 카드는 안 나오게) */
+/** 뽑을 때 나올 수 있는 카드인지. 벽 넘기·자리 바꾸기는 상황 상관없이 나온다(벽 넘기는 못 쓰면 버린다) */
 function usable(s: State, k: CardKind) {
-  if (k === 'jump') return ultMoves(s).length > 0;
   if (k === 'back') return backMoves(s).length > 0;
   if (k === 'dash') return dashMoves(s).length > 0;
   if (k === 'push') return pushMoves(s).length > 0;
   if (k === 'oneway') return lockDirs(s).length > 0;
-  if (k === 'swap') {
-    // 나한테 손해일 때만 나쁜 카드로 나온다
-    const p = s.turn;
-    const o = (1 - p) as Player;
-    return distance(s.walls, s.pawns[o], GOAL[p]) > distance(s.walls, s.pawns[p], GOAL[p]);
-  }
   if (k === 'confiscate') return s.left[s.turn] > 0;
   return true;
 }
@@ -259,7 +256,7 @@ function usable(s: State, k: CardKind) {
 /** 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나 */
 export function drawCard(s: State, rand = Math.random): { k: CardKind; d?: number } {
   const good = rand() < 0.5;
-  const pool = (Object.keys(CARDS) as CardKind[]).filter((k) => CARDS[k].good === good && usable(s, k));
+  const pool = (Object.keys(CARDS) as CardKind[]).filter((k) => (CARDS[k].tone === 'mixed' || (CARDS[k].tone === 'good') === good) && usable(s, k));
   const k = pool[Math.floor(rand() * pool.length)];
   if (k !== 'oneway') return { k };
   const dirs = lockDirs(s);
@@ -354,7 +351,11 @@ export function apply(s: State, m: Move): State | null {
       endAction(next, p);
       return next;
     }
-    if (m.t !== 'card' || CARDS[card].pick) return null;
+    if (m.t !== 'card') return null;
+    if (CARDS[card].pick) {
+      if (cardMoves(s).length) return null;
+      return next; // 쓸 수 없는 카드 → 버리고 이번 턴은 평소처럼
+    }
     if (card === 'again') {
       next.bonus = p; // 차례 유지, 이어서 두 번 둔다
       return next;

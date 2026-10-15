@@ -49,6 +49,8 @@ export type State = {
   spots?: Cell[];
   /** 뽑았지만 아직 안 쓴 필살기 카드 (뽑은 사람 차례가 유지된다) */
   card?: { p: Player; k: CardKind; d?: number } | null;
+  /** 이번 판에 이미 나온 카드 (다시 안 나오게) */
+  used?: CardKind[];
   /** '한 방향만' 카드: p 가 앞으로 n 번 두는 동안 말은 DIRS[d] 방향으로만 */
   lock?: { p: Player; d: number; n: number } | null;
   /** '한 번 더' 카드로 한 번 더 두는 사람 */
@@ -110,6 +112,7 @@ export function newGame(first: Player = 0, variant: Variant = 'classic'): State 
     card: null,
     bonus: null,
     lock: null,
+    used: [],
     turn: first,
     first,
     winner: null,
@@ -253,10 +256,18 @@ function usable(s: State, k: CardKind) {
   return true;
 }
 
-/** 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나 */
+/**
+ * 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나. 이번 판에 이미 나온 카드는 빼고 뽑는다.
+ * 고른 쪽이 다 나왔으면 반대쪽에서, 그것도 다 나왔으면 처음부터 다시 섞는다.
+ */
 export function drawCard(s: State, rand = Math.random): { k: CardKind; d?: number } {
   const good = rand() < 0.5;
-  const pool = (Object.keys(CARDS) as CardKind[]).filter((k) => (CARDS[k].tone === 'mixed' || (CARDS[k].tone === 'good') === good) && usable(s, k));
+  const used = new Set(s.used ?? []);
+  const side = (g: boolean, fresh: boolean) =>
+    (Object.keys(CARDS) as CardKind[]).filter(
+      (k) => (CARDS[k].tone === 'mixed' || (CARDS[k].tone === 'good') === g) && usable(s, k) && (!fresh || !used.has(k)),
+    );
+  const pool = [side(good, true), side(!good, true), side(good, false)].find((p) => p.length)!;
   const k = pool[Math.floor(rand() * pool.length)];
   if (k !== 'oneway') return { k };
   const dirs = lockDirs(s);
@@ -380,6 +391,7 @@ export function apply(s: State, m: Move): State | null {
     const u = s.ult ?? [0, 0];
     next.ult = p === 0 ? [u[0] - 1, u[1]] : [u[0], u[1] - 1];
     if (m.k === 'oneway' && (m.d === undefined || !lockDirs(s, p).includes(m.d))) return null;
+    next.used = [...(s.used ?? []), m.k];
     next.card = m.k === 'oneway' ? { p, k: m.k, d: m.d } : { p, k: m.k };
     return next;
   }

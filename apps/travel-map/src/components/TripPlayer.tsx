@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
-import type { Map as MapLibreMap, StyleSpecification } from "maplibre-gl";
+import type { Map as MapLibreMap } from "maplibre-gl";
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { LngLat, PhotoMeta, Trip } from "../types";
 import { bearing, buildSvgPaths, partialCoords } from "../lib/route";
 import {
@@ -40,26 +41,12 @@ type Props = {
   onBack: () => void;
 };
 
-// CARTO Positron: a quiet light basemap with city names and subtle roads,
-// but none of OSM's terrain shading, contours, or POI clutter.
-const buildStyle = (): StyleSpecification => ({
-  version: 8,
-  sources: {
-    basemap: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-      ],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
-      maxzoom: 19,
-    },
-  },
-  layers: [{ id: "basemap", type: "raster", source: "basemap" }],
-});
+// OpenFreeMap Positron: 도시 이름과 옅은 도로만 있는 조용한 밝은 지도.
+// CARTO 래스터 타일은 이제 API 키가 없으면 "API KEY REQUIRED" 타일을 주므로, 키 없이 쓰는 OpenFreeMap 으로 바꿨다.
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+
+// 벡터 타일은 워커가 그린다. maplibre 는 워커 파일을 자기 옆에서 찾는데 Vite 번들에선 못 찾아서 직접 알려준다.
+maplibregl.setWorkerUrl(workerUrl);
 
 const STORAGE_KEY = "travel-map.player-position";
 
@@ -128,7 +115,7 @@ export const TripPlayer: React.FC<Props> = ({
     const el = containerRef.current;
     const instance = new maplibregl.Map({
       container: el,
-      style: buildStyle(),
+      style: MAP_STYLE,
       center: mapCenter,
       zoom: mapZoom,
       interactive: false,

@@ -50,8 +50,6 @@ function GameBoard(props: BoardProps) {
 const VERDICT = { good: '좋은 카드!', bad: '앗, 나쁜 카드…', mixed: '🤷 복불복 카드!' } as const;
 const DUD_TEXT = '지금은 넘을 벽이 없어서 못 써요. 카드는 버리고 이번 턴은 그냥 두세요';
 
-const dirArrow = (d: number, flip: boolean) => (flip ? ['↓', '↑', '→', '←'] : ['↑', '↓', '←', '→'])[d];
-
 const buzz = (ms: number | number[] = 8) => navigator.vibrate?.(ms);
 
 // ───────── 라우팅: #local · #r=CODE · 처음 화면
@@ -179,7 +177,7 @@ function Rules() {
         <b>뛰어넘기</b> 말끼리 마주 보면 넘어갈 수 있어요. 뒤가 막혀 있으면 옆 대각선으로.
       </li>
       <li>
-        <b>🎁 필살기 버전</b> 판 위 🎁 칸 {SPOT_COUNT}곳에 먼저 도착하면 필살기 1회를 얻어요. 내 차례에 🎁 버튼으로 뽑는데, 뭐가 나올지는 뽑아 봐야 알아요. 반은 좋은 카드(벽 넘기·질주·밀치기·한 번 더·벽 보급), 반은 나쁜 카드(뒷걸음질·벽 압수·얼음·한 방향만)! 자리 바꾸기는 득일지 실일지 모르는 복불복 카드예요. 뽑은 카드는 그 턴에 무조건 써야 해요.
+        <b>🎁 필살기 버전</b> 판 위 🎁 칸 {SPOT_COUNT}곳에 먼저 도착하면 필살기 1회를 얻어요. 내 차례에 🎁 버튼으로 뽑는데, 뭐가 나올지는 뽑아 봐야 알아요. 반은 좋은 카드(벽 넘기·질주·밀치기·한 번 더·벽 보급), 반은 나쁜 카드(뒷걸음질·벽 압수·얼음·전진 금지)! 자리 바꾸기는 득일지 실일지 모르는 복불복 카드예요. 뽑은 카드는 그 턴에 무조건 써야 해요.
       </li>
     </ol>
   );
@@ -387,7 +385,7 @@ function Match({
           </div>
         )}
         {lock && canPlay && !myCard && mode === 'move' && (
-          <p className="hint ult-hint">🧭 이번 턴은 {dirArrow(lock.d, flip)} 방향으로만 갈 수 있어요{lock.n > 1 ? ' (다음 턴까지)' : ''}</p>
+          <p className="hint ult-hint">🚫 전진 금지! 이번 턴은 옆이나 뒤로만 갈 수 있어요</p>
         )}
         {mode === 'wall' && canPlay && !myCard && (
           <div className="wall-actions">
@@ -426,9 +424,6 @@ function Match({
             <p className="muted">
               {myCard || !card ? shownCard.desc : `${seats[state.turn].name}가 뽑았어요 · ${shownCard.desc}`}
             </p>
-            {state.card?.k === 'oneway' && state.card.d !== undefined && (
-              <p className="lock-dir">{dirArrow(state.card.d, flip)}</p>
-            )}
             {myCard ? (
               <button className="primary wide" onClick={useCard}>
                 {cardLabel}
@@ -477,7 +472,7 @@ function PlayerCard({ state, p, seat }: { state: State; p: Player; seat: Seat })
       {state.variant === 'ult' ? (
         <span className={`ult-mark ${ultLeft(state, p) > 0 ? 'on' : ''}`} aria-label={`필살기 ${ultLeft(state, p)}번 남음`}>
           🎁{ultLeft(state, p) > 1 ? `×${ultLeft(state, p)}` : ''}
-          {state.lock?.p === p && ' 🧭'}
+          {state.lock?.p === p && ' 🚫'}
         </span>
       ) : (
         <span />

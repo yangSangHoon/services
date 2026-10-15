@@ -14,7 +14,7 @@ export type Move =
   | { t: 'move'; r: number; c: number; ult?: true }
   | { t: 'wall'; o: Orient; r: number; c: number }
   /** 필살기 뽑기 (뽑는 쪽이 무작위로 정해 보낸다) */
-  | { t: 'draw'; k: CardKind; d?: number }
+  | { t: 'draw'; k: CardKind }
   /** 칸을 고를 필요 없는 필살기 카드 발동 */
   | { t: 'card' };
 
@@ -33,7 +33,7 @@ export const CARDS: Record<CardKind, { tone: Tone; emoji: string; name: string; 
   back: { tone: 'bad', emoji: '🐢', name: '뒷걸음질', desc: '뒤로 한 칸 물러나야 해요', pick: '물러날 칸을 골라요' },
   confiscate: { tone: 'bad', emoji: '💥', name: '벽 압수', desc: '내 벽 2개를 잃어요' },
   nap: { tone: 'bad', emoji: '🧊', name: '얼음', desc: '꽁꽁 얼어서 이번 턴은 쉬어요' },
-  oneway: { tone: 'bad', emoji: '🧭', name: '한 방향만', desc: '이번 턴과 다음 턴, 말은 정해진 한 방향으로만 갈 수 있어요' },
+  oneway: { tone: 'bad', emoji: '🚫', name: '전진 금지', desc: '이번 턴엔 앞으로 못 가요. 옆이나 뒤로 가거나 벽을 세우세요' },
   swap: { tone: 'mixed', emoji: '🔄', name: '자리 바꾸기', desc: '상대 말과 내 말의 자리가 바뀌어요. 바뀐 자리에서 이어서 두세요' },
 };
 
@@ -48,11 +48,11 @@ export type State = {
   /** 필살기 버전: 도착하면 필살기 1회를 얻는 🎁 칸 (먹으면 사라진다) */
   spots?: Cell[];
   /** 뽑았지만 아직 안 쓴 필살기 카드 (뽑은 사람 차례가 유지된다) */
-  card?: { p: Player; k: CardKind; d?: number } | null;
+  card?: { p: Player; k: CardKind } | null;
   /** 이번 판에 이미 나온 카드 (다시 안 나오게) */
   used?: CardKind[];
-  /** '한 방향만' 카드: p 가 앞으로 n 번 두는 동안 말은 DIRS[d] 방향으로만 */
-  lock?: { p: Player; d: number; n: number } | null;
+  /** '전진 금지' 카드: p 가 이번에 두는 한 번은 앞으로 못 간다 (CardKind 'oneway') */
+  lock?: { p: Player; n: number } | null;
   /** '한 번 더' 카드로 한 번 더 두는 사람 */
   bonus?: Player | null;
   turn: Player;
@@ -178,27 +178,14 @@ export function ultMoves(s: State, p: Player = s.turn): Cell[] {
   return out;
 }
 
-/** 이번 차례에 말이 갈 수 있는 칸 ('한 방향만'에 걸려 있으면 그 방향만) */
+/** 이번 차례에 말이 갈 수 있는 칸 ('전진 금지'에 걸려 있으면 목표 쪽으로 가까워지는 칸은 빼고) */
 export function stepMoves(s: State, p: Player = s.turn): Cell[] {
   const all = pawnMoves(s, p);
-  const lock = s.lock?.p === p ? s.lock : null;
-  if (!lock) return all;
-  const [dr, dc] = DIRS[lock.d];
-  const [r, c] = s.pawns[p];
-  const ok = all.filter(([nr, nc]) => Math.sign(nr - r) === dr && Math.sign(nc - c) === dc);
-  // 그 방향이 막혔고 벽도 없으면 꼼짝 못 하니 풀어 준다
+  if (s.lock?.p !== p) return all;
+  const from = Math.abs(s.pawns[p][0] - GOAL[p]);
+  const ok = all.filter(([r]) => Math.abs(r - GOAL[p]) >= from);
+  // 옆·뒤도 막혔고 벽도 없으면 꼼짝 못 하니 풀어 준다
   return ok.length || s.left[p] > 0 ? ok : all;
-}
-
-/** '한 방향만'으로 걸 수 있는 방향: 앞으로 가는 쪽은 빼고, 지금 갈 수 있는 쪽 */
-function lockDirs(s: State, p: Player = s.turn): number[] {
-  const [r, c] = s.pawns[p];
-  const fwd = GOAL[p] < r ? -1 : 1;
-  return DIRS.map((_, i) => i).filter((i) => {
-    const [dr, dc] = DIRS[i];
-    if (dr === fwd) return false;
-    return pawnMoves(s, p).some(([nr, nc]) => Math.sign(nr - r) === dr && Math.sign(nc - c) === dc);
-  });
 }
 
 /** 뒷걸음질: 갈 수 있는 칸 중 목표에서 멀어지는 곳 */
@@ -251,7 +238,6 @@ function usable(s: State, k: CardKind) {
   if (k === 'back') return backMoves(s).length > 0;
   if (k === 'dash') return dashMoves(s).length > 0;
   if (k === 'push') return pushMoves(s).length > 0;
-  if (k === 'oneway') return lockDirs(s).length > 0;
   if (k === 'confiscate') return s.left[s.turn] > 0;
   return true;
 }
@@ -264,7 +250,7 @@ const cryptoRandom = () =>
  * 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나. 이번 판에 이미 나온 카드는 빼고 뽑는다.
  * 고른 쪽이 다 나왔으면 반대쪽에서, 그것도 다 나왔으면 처음부터 다시 섞는다.
  */
-export function drawCard(s: State, rand = cryptoRandom): { k: CardKind; d?: number } {
+export function drawCard(s: State, rand = cryptoRandom): { k: CardKind } {
   const good = rand() < 0.5;
   const used = new Set(s.used ?? []);
   const side = (g: boolean, fresh: boolean) =>
@@ -272,10 +258,7 @@ export function drawCard(s: State, rand = cryptoRandom): { k: CardKind; d?: numb
       (k) => (CARDS[k].tone === 'mixed' || (CARDS[k].tone === 'good') === g) && usable(s, k) && (!fresh || !used.has(k)),
     );
   const pool = [side(good, true), side(!good, true), side(good, false)].find((p) => p.length)!;
-  const k = pool[Math.floor(rand() * pool.length)];
-  if (k !== 'oneway') return { k };
-  const dirs = lockDirs(s);
-  return { k, d: dirs[Math.floor(rand() * dirs.length)] };
+  return { k: pool[Math.floor(rand() * pool.length)] };
 }
 
 /** 벽만 고려한 목표까지 최단 칸 수. 길이 없으면 -1 */
@@ -376,7 +359,7 @@ export function apply(s: State, m: Move): State | null {
       return next;
     }
     if (card === 'oneway') {
-      next.lock = { p, d: s.card!.d ?? 1, n: 2 }; // 이번 턴부터 두 번, 차례 유지
+      next.lock = { p, n: 1 }; // 이번 턴 한 번만, 차례 유지
       return next;
     }
     if (card === 'swap') {
@@ -396,9 +379,8 @@ export function apply(s: State, m: Move): State | null {
     if (ultLeft(s, p) <= 0 || !CARDS[m.k] || !usable(s, m.k)) return null;
     const u = s.ult ?? [0, 0];
     next.ult = p === 0 ? [u[0] - 1, u[1]] : [u[0], u[1] - 1];
-    if (m.k === 'oneway' && (m.d === undefined || !lockDirs(s, p).includes(m.d))) return null;
     next.used = [...(s.used ?? []), m.k];
-    next.card = m.k === 'oneway' ? { p, k: m.k, d: m.d } : { p, k: m.k };
+    next.card = { p, k: m.k };
     return next;
   }
   if (m.t === 'card') return null;

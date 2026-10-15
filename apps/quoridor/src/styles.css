@@ -231,4 +231,3 @@ h1, h2, p, ol { margin: 0; }
 .ult-tab.is-ready:not(:disabled) { box-shadow: inset 0 0 0 1.5px #f59e0b; animation: ult-ready 1.4s ease-in-out infinite alternate; }
 @keyframes ult-ready { to { background: rgba(255, 183, 3, 0.18); } }
 .spot { font-size: 6px; pointer-events: none; }
-.lock-dir { font-size: 40px; font-weight: 900; color: #7c3aed; line-height: 1; }

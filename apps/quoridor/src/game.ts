@@ -34,7 +34,7 @@ export const CARDS: Record<CardKind, { tone: Tone; emoji: string; name: string; 
   confiscate: { tone: 'bad', emoji: '💥', name: '벽 압수', desc: '내 벽 2개를 잃어요' },
   nap: { tone: 'bad', emoji: '🧊', name: '얼음', desc: '꽁꽁 얼어서 이번 턴은 쉬어요' },
   oneway: { tone: 'bad', emoji: '🧭', name: '한 방향만', desc: '이번 턴과 다음 턴, 말은 정해진 한 방향으로만 갈 수 있어요' },
-  swap: { tone: 'mixed', emoji: '🔄', name: '자리 바꾸기', desc: '상대 말과 내 말의 자리가 바뀌어요' },
+  swap: { tone: 'mixed', emoji: '🔄', name: '자리 바꾸기', desc: '상대 말과 내 말의 자리가 바뀌어요. 바뀐 자리에서 이어서 두세요' },
 };
 
 export type State = {
@@ -256,11 +256,15 @@ function usable(s: State, k: CardKind) {
   return true;
 }
 
+/** 0 이상 1 미만 난수. 되도록 crypto 를 쓴다 */
+const cryptoRandom = () =>
+  typeof crypto !== 'undefined' && crypto.getRandomValues ? crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32 : Math.random();
+
 /**
  * 50% 확률로 좋은 카드, 아니면 나쁜 카드 중 하나. 이번 판에 이미 나온 카드는 빼고 뽑는다.
  * 고른 쪽이 다 나왔으면 반대쪽에서, 그것도 다 나왔으면 처음부터 다시 섞는다.
  */
-export function drawCard(s: State, rand = Math.random): { k: CardKind; d?: number } {
+export function drawCard(s: State, rand = cryptoRandom): { k: CardKind; d?: number } {
   const good = rand() < 0.5;
   const used = new Set(s.used ?? []);
   const side = (g: boolean, fresh: boolean) =>
@@ -376,9 +380,11 @@ export function apply(s: State, m: Move): State | null {
       return next;
     }
     if (card === 'swap') {
+      // 자리만 바꾸고 차례는 그대로 — 바뀐 자리에서 이어서 둔다
       const o = (1 - p) as Player;
       next.pawns = [s.pawns[1], s.pawns[0]];
       if (next.pawns[o][0] === GOAL[o]) next.winner = o;
+      return next;
     }
     if (card === 'supply') next.left = addWalls(s, p, 3);
     if (card === 'confiscate') next.left = addWalls(s, p, -2);

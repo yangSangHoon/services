@@ -60,6 +60,8 @@ ul { list-style: none; }
 .wide { width: 100%; }
 .small-btn { height: 34px; padding: 0 12px; border-radius: 10px; font-size: 13px; }
 .link { color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; padding: 8px; align-self: center; }
+.help-links { display: flex; justify-content: center; align-items: center; gap: 4px; flex-wrap: wrap; }
+.yt-link { display: inline-flex; align-items: center; gap: 4px; color: #e5322d; font-weight: 700; }
 .ghost-btn { width: 38px; height: 38px; flex: none; border-radius: 12px; font-size: 17px; background: var(--surface); border: 1px solid var(--line); }
 .bar-pad { width: 38px; flex: none; }
 

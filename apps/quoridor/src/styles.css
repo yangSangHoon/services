@@ -51,6 +51,8 @@ h1, h2, p, ol { margin: 0; }
 .primary.wide { width: 100%; }
 .soft { height: 50px; padding: 0 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-weight: 700; }
 .link { color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; padding: 8px; }
+.help-links { display: flex; justify-content: center; align-items: center; gap: 4px; flex-wrap: wrap; }
+.yt-link { display: inline-flex; align-items: center; gap: 4px; color: #e5322d; font-weight: 700; }
 .ghost-btn { width: 40px; height: 40px; border-radius: 12px; font-size: 18px; background: var(--surface); border: 1px solid var(--line); }
 
 /* ───────── 처음 화면 */

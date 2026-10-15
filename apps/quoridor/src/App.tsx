@@ -119,9 +119,20 @@ function Home() {
         </button>
       </div>
 
-      <button className="link" onClick={() => setRules((v) => !v)} aria-expanded={rules}>
-        {rules ? '규칙 접기' : '규칙 보기'}
-      </button>
+      <div className="help-links">
+        <button className="link" onClick={() => setRules((v) => !v)} aria-expanded={rules}>
+          {rules ? '규칙 접기' : '규칙 보기'}
+        </button>
+        <a
+          className="link yt-link"
+          href={`https://www.youtube.com/results?search_query=${encodeURIComponent('쿼리도 보드게임 하는 법')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track('quoridor', 'howto-video')}
+        >
+          ▶ 유튜브로 배우기
+        </a>
+      </div>
       {rules && <Rules />}
     </main>
   );

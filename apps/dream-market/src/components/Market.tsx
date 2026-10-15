@@ -30,10 +30,12 @@ interface Props {
   onUser: (userId: string) => void;
   /** 있으면 이 사람이 올린 꿈만 모아 보는 화면 */
   sellerId?: string;
+  /** 있으면 공유받은 꿈 하나만 보는 화면 */
+  dreamId?: string;
   onBack?: () => void;
 }
 
-export default function Market({ profile, guest, onCoins, onSignup, onUser, sellerId, onBack }: Props) {
+export default function Market({ profile, guest, onCoins, onSignup, onUser, sellerId, dreamId, onBack }: Props) {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [vanishing, setVanishing] = useState<Set<string>>(new Set());
@@ -48,7 +50,7 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
 
   const load = useCallback(async () => {
     try {
-      const [list, votes] = await Promise.all([fetchMarket(sellerId), fetchMyVotes(profile.id)]);
+      const [list, votes] = await Promise.all([fetchMarket(sellerId, dreamId), fetchMyVotes(profile.id)]);
       setDreams(list);
       setMyVotes(votes);
     } catch (err) {
@@ -56,7 +58,7 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
     } finally {
       setLoading(false);
     }
-  }, [profile.id, sellerId]);
+  }, [profile.id, sellerId, dreamId]);
 
   useEffect(() => {
     if (sellerId) fetchPublicProfile(sellerId).then(setSeller, () => setSeller(null));
@@ -95,7 +97,7 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
     () =>
       onMarket((e) => {
         if (e.type === 'listed') {
-          if (sellerId && e.dream.seller_id !== sellerId) return;
+          if (dreamId || (sellerId && e.dream.seller_id !== sellerId)) return;
           setDreams((ds) => (ds.some((d) => d.id === e.dream.id) ? ds : [e.dream, ...ds]));
           setFresh((s) => new Set(s).add(e.dream.id));
           if (e.dream.seller_id !== profile.id) toast(`${e.dream.seller_nickname}님이 새 꿈을 올렸어요 ✨`);
@@ -106,7 +108,7 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
           vanish(e.dreamId);
         }
       }),
-    [vanish, markSold, profile.id, profile.nickname, sellerId],
+    [vanish, markSold, profile.id, profile.nickname, sellerId, dreamId],
   );
 
   const toggleOnlyOnSale = (v: boolean) => {
@@ -122,11 +124,11 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
 
   const visible = useMemo(() => {
     // 방금 팔린 카드는 연출이 끝날 때까지는 보여준다
-    const list = onlyOnSale ? dreams.filter((d) => d.status === 'on_sale' || poofing.has(d.id)) : dreams;
+    const list = onlyOnSale && !dreamId ? dreams.filter((d) => d.status === 'on_sale' || poofing.has(d.id)) : dreams;
     if (sort === 'cheap') return [...list].sort((a, b) => a.price - b.price);
     if (sort === 'pricey') return [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [dreams, sort, onlyOnSale, poofing]);
+  }, [dreams, sort, onlyOnSale, poofing, dreamId]);
 
   const open = (d: Dream) => {
     if (d.status !== 'on_sale') return;
@@ -163,7 +165,17 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
 
   return (
     <main className="content">
-      {sellerId ? (
+      {dreamId ? (
+        <>
+          <button className="back-link" onClick={onBack}>
+            ← 꿈 시장으로
+          </button>
+          <div className="shared-head">
+            <div className="kicker">✦ 친구가 보낸 꿈</div>
+            <h1>이 꿈, 살까 말까? 💭</h1>
+          </div>
+        </>
+      ) : sellerId ? (
         <>
           <button className="back-link" onClick={onBack}>
             ← 꿈 시장으로
@@ -196,14 +208,14 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
         </>
       )}
 
-      <div className="filter-row">
+      {!dreamId && <div className="filter-row">
         {sellerId && onlySaleToggle}
         <select className="sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="정렬">
           <option value="new">🕐 최신순</option>
           <option value="cheap">🪙 싼 꿈부터</option>
           <option value="pricey">💎 비싼 꿈부터</option>
         </select>
-      </div>
+      </div>}
 
       {loading ? (
         <div className="empty">
@@ -214,9 +226,9 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
         <div className="empty">
           <div className="emoji">🌫️</div>
           <p className="title">
-            {sellerId ? '아직 올린 꿈이 없어요' : onlyOnSale && dreams.length ? '안팔린 꿈이 없어요' : '시장에 남은 꿈이 없어요'}
+            {dreamId ? '이 꿈은 사라졌어요' : sellerId ? '아직 올린 꿈이 없어요' : onlyOnSale && dreams.length ? '안팔린 꿈이 없어요' : '시장에 남은 꿈이 없어요'}
           </p>
-          <p className="sub">{sellerId ? '오늘 밤엔 꿈을 꾸려나 봐요 💤' : '오늘 밤 누군가 꾸면 다시 올라와요. 먼저 하나 올려볼까요?'}</p>
+          <p className="sub">{dreamId ? '주인이 거둬들였나 봐요. 시장엔 다른 꿈이 잔뜩 있어요!' : sellerId ? '오늘 밤엔 꿈을 꾸려나 봐요 💤' : '오늘 밤 누군가 꾸면 다시 올라와요. 먼저 하나 올려볼까요?'}</p>
         </div>
       ) : (
         <div className="grid">
@@ -237,6 +249,14 @@ export default function Market({ profile, guest, onCoins, onSignup, onUser, sell
               onUser={sellerId ? undefined : onUser}
             />
           ))}
+        </div>
+      )}
+
+      {dreamId && !loading && (
+        <div className="shared-more">
+          <button className="btn btn-lav" onClick={onBack}>
+            🌙 다른 꿈도 구경하기
+          </button>
         </div>
       )}
 

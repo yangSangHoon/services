@@ -7,6 +7,7 @@ import { toast } from '../lib/toast';
 import type { OwnedDream, Profile } from '../lib/types';
 import NameCard from './NameCard';
 import HaemongButton from './HaemongButton';
+import ShareButton from './ShareButton';
 import { ResellForm, ReviewForm } from './OwnedActions';
 
 export type Section = 'bought' | 'selling' | 'sold';
@@ -184,9 +185,12 @@ export default function MyDreams({ initialSection, profile, guest, onBack, onSig
                     </div>
                   </div>
                   {section === 'selling' && (
-                    <button className="owned-badge" onClick={() => withdraw(d)}>
-                      거두기
-                    </button>
+                    <span className="owned-tools">
+                      <ShareButton dream={d} className="owned-badge" label="🔗" />
+                      <button className="owned-badge" onClick={() => withdraw(d)}>
+                        거두기
+                      </button>
+                    </span>
                   )}
                   {section === 'sold' && (
                     <span className="owned-badge" style={{ background: '#d4f3e6' }}>
@@ -219,6 +223,7 @@ export default function MyDreams({ initialSection, profile, guest, onBack, onSig
                   ) : (
                     <div className="owned-actions">
                       <HaemongButton dream={d} className="btn" label="🔮 AI 해몽" />
+                      <ShareButton dream={d} className="btn" label="🔗 공유" />
                       {!d.review && (
                         <button className="btn" onClick={() => setForm({ id: d.id, kind: 'review' })}>
                           ✍️ 후기 쓰기{!guest && <small>+50만</small>}

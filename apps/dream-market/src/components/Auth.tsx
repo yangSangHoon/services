@@ -36,6 +36,7 @@ export function AuthScreen() {
           <span style={{ opacity: 0.9 }}>Dream Market</span>
         </div>
         <div className="landing-hero">
+          {/^#d\//.test(location.hash) && <p className="landing-shared">💌 친구가 꿈 하나를 보냈어요 · 들어가면 바로 보여드려요</p>}
           <div className="moon" />
           <h1 className="logo">꿈사꿈팔</h1>
           <div>

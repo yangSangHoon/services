@@ -58,10 +58,11 @@ export async function claimWelcomeBonus() {
   return data as number;
 }
 
-/** 시장 목록. sellerId가 있으면 그 사람이 올린 꿈만 */
-export async function fetchMarket(sellerId?: string) {
+/** 시장 목록. sellerId가 있으면 그 사람이 올린 꿈만, dreamId가 있으면 그 꿈 하나만 */
+export async function fetchMarket(sellerId?: string, dreamId?: string) {
   let query = supabase.from(T.dreams).select(DREAM_SELECT);
   if (sellerId) query = query.eq('seller_id', sellerId);
+  if (dreamId) query = query.eq('id', dreamId);
   const { data, error } = await query.order('created_at', { ascending: false }).limit(200);
   if (error) throw error;
   return (data as Row[]).map(toDream);

@@ -4,6 +4,7 @@ import { formatCoins, timeAgo } from '../lib/format';
 import type { Dream, Verdict } from '../lib/types';
 import { PASTELS } from './Backdrops';
 import HaemongButton from './HaemongButton';
+import ShareButton from './ShareButton';
 
 interface Props {
   dream: Dream;
@@ -57,6 +58,7 @@ export default function DreamCard({ dream, index, isMine, guest, vanishing, poof
             </span>
           )}
           {dream.content && <HaemongButton dream={dream} className="corner" label="🔮 해몽" />}
+          <ShareButton dream={dream} className="corner" />
         </div>
         <h3>{dream.title}</h3>
         {dream.content && (

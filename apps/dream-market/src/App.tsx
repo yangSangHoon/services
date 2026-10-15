@@ -1,4 +1,5 @@
 import { isConfigured, isGuest, useSession } from '@lab/core';
+import { track } from '@lab/core/track';
 import { useCallback, useEffect, useState } from 'react';
 import { AuthPage, AuthScreen, NickPage, type AuthMode } from './components/Auth';
 import { AppBackdrop } from './components/Backdrops';
@@ -16,6 +17,8 @@ import type { Profile } from './lib/types';
 
 /** #u/<id> = 그 사람의 꿈 모아보기 (링크 공유·뒤로가기 가능) */
 const readUserHash = () => location.hash.match(/^#u\/([0-9a-f-]{36})$/)?.[1] ?? null;
+/** #d/<id> = 공유받은 꿈 하나 보기 */
+const readDreamHash = () => location.hash.match(/^#d\/([0-9a-f-]{36})$/)?.[1] ?? null;
 
 export default function App() {
   return (
@@ -35,9 +38,14 @@ function DreamApp() {
   const [signingUp, setSigningUp] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
   const [userPage, setUserPage] = useState<string | null>(readUserHash);
+  const [dreamPage, setDreamPage] = useState<string | null>(readDreamHash);
 
   useEffect(() => {
-    const sync = () => setUserPage(readUserHash());
+    if (dreamPage) track('dream-market', 'shared-open');
+    const sync = () => {
+      setUserPage(readUserHash());
+      setDreamPage(readDreamHash());
+    };
     window.addEventListener('hashchange', sync);
     return () => window.removeEventListener('hashchange', sync);
   }, []);
@@ -47,9 +55,10 @@ function DreamApp() {
     window.scrollTo(0, 0);
   };
   const closeUser = () => {
-    if (!userPage) return;
+    if (!userPage && !dreamPage) return;
     history.pushState(null, '', location.pathname + location.search);
     setUserPage(null);
+    setDreamPage(null);
   };
   const navigate = (v: View) => {
     closeUser();
@@ -121,7 +130,18 @@ function DreamApp() {
     <div className="app">
       <AppBackdrop />
       <Header profile={profile} guest={guest} onNavigate={navigate} onSignup={openSignup} />
-      {userPage ? (
+      {dreamPage ? (
+        <Market
+          key={`d-${dreamPage}`}
+          dreamId={dreamPage}
+          onBack={() => navigate('market')}
+          profile={profile}
+          guest={guest}
+          onCoins={setCoins}
+          onSignup={openSignup}
+          onUser={openUser}
+        />
+      ) : userPage ? (
         <Market
           key={userPage}
           sellerId={userPage}

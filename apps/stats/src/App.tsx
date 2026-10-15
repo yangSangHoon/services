@@ -47,6 +47,7 @@ const EVENT_LABEL: Record<string, string> = {
   start: '게임 시작',
   offer: '거래 제안',
   rematch: '한 판 더',
+  'shared-open': '공유 링크로 열람',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

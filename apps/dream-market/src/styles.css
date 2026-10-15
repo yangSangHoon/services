@@ -590,3 +590,19 @@ span.avatar { cursor: default; }
 .haemong-btn.corner:active { transform: translateY(2px); box-shadow: none; }
 .haemong-btn.wide { width: 100%; height: 48px; border-radius: 999px; font-size: 15px; background: linear-gradient(135deg, #efe9ff, #ffeaf3); border: 1.5px solid var(--dm-lav); }
 .owned-actions .haemong-btn.btn { background: linear-gradient(135deg, #efe9ff, #ffeaf3); }
+
+/* ─── 꿈 공유 */
+.share-btn { border: 0; font-family: var(--dm-font-display); color: var(--dm-ink); }
+.share-btn.corner {
+  margin-left: auto; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12px;
+  background: #fff; box-shadow: 0 2px 0 var(--dm-lav); border: 1.5px solid var(--dm-lav-50);
+}
+.haemong-btn.corner + .share-btn.corner { margin-left: 0; }
+.share-btn.corner:active { transform: translateY(2px); box-shadow: none; }
+.owned-tools { display: flex; gap: 6px; }
+.owned-actions { flex-wrap: wrap; }
+.owned-actions .btn { min-width: calc(50% - 4px); }
+.shared-head { margin: 14px 0 16px; padding: 18px 20px; border-radius: 24px; background: linear-gradient(135deg, #efe9ff, #ffeaf3); box-shadow: var(--dm-shadow-sm); }
+.shared-head h1 { font-family: var(--dm-font-display); font-weight: 400; font-size: 26px; margin: 0; line-height: 1.2; }
+.shared-more { display: flex; justify-content: center; margin-top: 18px; }
+.landing-shared { padding: 10px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.85); color: var(--dm-ink); font-family: var(--dm-font-display); font-size: 14px; text-align: center; }

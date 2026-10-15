@@ -103,7 +103,7 @@ function Home() {
     <main className="page home">
       <div className="hero">
         <MiniIsland />
-        <h1>개척의 섬</h1>
+        <h1>카탄</h1>
         <p className="muted">주사위 굴려 자원 모으고, 길 내고 마을 짓기. 먼저 {WIN_VP}점 내면 승리!</p>
       </div>
 
@@ -199,7 +199,7 @@ function RoomGate({ code }: { code: string }) {
     return (
       <main className="page center">
         <div className="hero-emoji">🏝️</div>
-        <h2>개척의 섬에 초대받았어요</h2>
+        <h2>카탄에 초대받았어요</h2>
         <form
           className="name-form"
           onSubmit={(e) => {
@@ -260,7 +260,7 @@ function Lobby({ net, room }: { net: Net; room: Room }) {
     track('settlers', 'invite');
     if (navigator.share) {
       try {
-        await navigator.share({ title: '개척의 섬', text: '개척의 섬 한 판 하자! 🏝️ 링크 누르고 들어와', url });
+        await navigator.share({ title: '카탄', text: '카탄 한 판 하자! 🏝️ 링크 누르고 들어와', url });
         return;
       } catch (e) {
         if ((e as Error).name === 'AbortError') return;

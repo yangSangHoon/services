@@ -48,6 +48,10 @@ const EVENT_LABEL: Record<string, string> = {
   offer: '거래 제안',
   rematch: '한 판 더',
   'shared-open': '공유 링크로 열람',
+  'save-photo': '사진과 함께 저장',
+  random: '추억 랜덤 꺼내기',
+  'link-account': '이메일 연결',
+  install: '홈 화면 설치',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

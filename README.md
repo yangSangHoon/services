@@ -8,6 +8,7 @@
 | [🥢 찰떡궁합](https://yangsanghoon.github.io/services/food-match/) | 이거랑 이거, 같이 먹어도 돼? 음식 궁합과 속설 판별 |
 | [🦟 앵앵 몰카](https://yangsanghoon.github.io/services/mosquito-cam/) | 화면엔 모기가 날고 스피커에선 앵~ 소리, 반응을 영상으로 찍어 공유 |
 | [🧱 쿼리도 한판](https://yangsanghoon.github.io/services/quoridor/) | 벽 세워서 길 막기! 한 폰으로 둘이서, 또는 링크로 친구와 온라인 1:1 |
+| [📸 찰나](https://yangsanghoon.github.io/services/moments/) | 웃음 터진 그 순간, 10초 만에 남겨두는 추억 기록장 |
 | [🏝️ 카탄](https://yangsanghoon.github.io/services/settlers/) | 카탄 룰 보드게임. 링크로 친구와 3~4인 온라인 대결, 빈 자리는 봇 |
 
 ## 방문 통계

@@ -1,5 +1,5 @@
 // 찰나 서비스 워커: 오프라인에서도 열리게 + 안드로이드 공유 시트로 받은 사진 전달
-const SHELL = 'moments-shell-v1';
+const SHELL = 'moments-shell-v2';
 const SHARE = 'moments-share';
 const base = new URL('./', self.location.href).href;
 

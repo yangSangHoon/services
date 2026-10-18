@@ -6,11 +6,14 @@ import { Archive } from './components/Archive';
 import { Composer, type Draft } from './components/Composer';
 import { Detail } from './components/Detail';
 import { MomentCard } from './components/MomentCard';
+import { ProfileEditor } from './components/ProfileEditor';
 import { Settings } from './components/Settings';
+import { go, parseRoute, Social } from './components/Social';
 import { compressPhoto } from './lib/image';
 import { isStandalone } from './lib/install';
 import { dayKey } from './lib/time';
-import { listPending, loadCachedEntries, putPending, removePending, saveCachedEntries, takeSharedPayload, type Entry, type Pending } from './lib/store';
+import { getMyProfile, type Profile } from './lib/social';
+import { listPending, loadCachedEntries, loadVisibility, putPending, removePending, saveVisibility, type Visibility, saveCachedEntries, takeSharedPayload, type Entry, type Pending } from './lib/store';
 import { fetchEntries, flushPending, signPhotos } from './lib/sync';
 
 type Tab = 'write' | 'archive';
@@ -32,6 +35,46 @@ export default function App() {
   const [shared, setShared] = useState<Partial<Draft> | null>(null);
   const [nudge, setNudge] = useState(() => !isStandalone() && !safeGet(NUDGE_KEY));
   const localUrls = useRef(new Map<string, string>());
+  const [hash, setHash] = useState(location.hash);
+  const [visibility, setVisibility] = useState<Visibility>(loadVisibility);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [editor, setEditor] = useState<{ reason?: string } | null>(null);
+  const profileWaiter = useRef<((ok: boolean) => void) | null>(null);
+
+  useEffect(() => {
+    const onHash = () => setHash(location.hash);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const route = parseRoute(hash);
+
+  useEffect(() => {
+    if (isConfigured) getMyProfile(true).then(setProfile).catch(() => undefined);
+  }, [session?.user.id]);
+
+  /** 공개 글은 프로필이 있어야 한다. 없으면 만들기 화면을 띄우고 결과를 기다린다 */
+  const requireProfile = useCallback(async (reason = '공개한 찰나에는 이 이름과 아바타가 함께 보여요.') => {
+    const p = profile ?? (await getMyProfile().catch(() => null));
+    if (p) {
+      setProfile(p);
+      return true;
+    }
+    setEditor({ reason });
+    return new Promise<boolean>((resolve) => (profileWaiter.current = resolve));
+  }, [profile]);
+
+  const closeEditor = (p: Profile | null) => {
+    if (p) setProfile(p);
+    setEditor(null);
+    profileWaiter.current?.(Boolean(p));
+    profileWaiter.current = null;
+  };
+
+  const changeVisibility = async (v: Visibility) => {
+    if (v === 'public' && !(await requireProfile())) return;
+    setVisibility(v);
+    saveVisibility(v);
+  };
 
   const loadPending = useCallback(async () => {
     const list = await listPending().catch(() => [] as Pending[]);
@@ -125,12 +168,14 @@ export default function App() {
       photo_path: null,
       happened_at: d.happenedAt.toISOString(),
       created_at: now.toISOString(),
+      visibility,
     };
     const photo = d.photo ? await compressPhoto(d.photo).catch(() => d.photo) : null;
     await putPending({ entry, photo, op: 'upsert' });
     if (photo) localUrls.current.set(entry.id, URL.createObjectURL(photo));
     setPending((list) => [...list, { entry, photo, op: 'upsert' }]);
     track('moments', d.photo ? 'save-photo' : 'save');
+    if (visibility === 'public') track('moments', 'publish');
     flash(d.photo ? '📸 사진이랑 같이 보관했어요' : '✨ 이 순간, 보관했어요');
     refresh();
   };
@@ -166,6 +211,20 @@ export default function App() {
     safeSet(NUDGE_KEY, '1');
   };
 
+  const sheets = (
+    <>
+      {editor && <ProfileEditor initial={profile} reason={editor.reason} onDone={closeEditor} onClose={() => closeEditor(null)} />}
+    </>
+  );
+
+  if (route)
+    return (
+      <div className="app no-tabbar">
+        <Social route={route} me={profile} onEditProfile={() => (profile ? setEditor({}) : requireProfile('다른 사람에게 보일 이름과 아바타를 정해 주세요.'))} />
+        {sheets}
+      </div>
+    );
+
   return (
     <div className="app">
       <header className="top">
@@ -173,6 +232,9 @@ export default function App() {
           <span className="brand-mark">📸</span> 찰나
         </button>
         <SyncBadge state={sync} waiting={waiting} onClick={() => setSettings(true)} />
+        <button className="icon-btn" onClick={() => go('#/explore')} aria-label="다른 사람 찰나">
+          🌏
+        </button>
         <button className="icon-btn" onClick={() => setSettings(true)} aria-label="설정">
           ⚙️
         </button>
@@ -180,7 +242,16 @@ export default function App() {
 
       {tab === 'write' ? (
         <main className="page">
-          <Composer key={shared ? 'shared' : 'blank'} initial={shared} onSave={save} />
+          <Composer key={shared ? 'shared' : 'blank'} initial={shared} visibility={visibility} onVisibility={changeVisibility} onSave={save} />
+
+          <button className="explore-cta" onClick={() => go('#/explore')}>
+            <span className="explore-emoji">🌏</span>
+            <span>
+              <b>다른 사람 찰나 보러가기</b>
+              <small>추천 · 구독한 사람들의 순간</small>
+            </span>
+            <span className="arrow">→</span>
+          </button>
 
           {nudge && (
             <div className="nudge">
@@ -242,8 +313,9 @@ export default function App() {
 
       <Toast message={toast} />
 
-      {open && <Detail entry={open} photo={photoOf(open)} onClose={() => setOpenId(null)} onUpdate={update} onDelete={remove} />}
-      {settings && <Settings onClose={() => setSettings(false)} waiting={waiting} syncError={sync === 'error' ? syncError : ''} onRetry={refresh} />}
+      {open && <Detail entry={open} photo={photoOf(open)} onClose={() => setOpenId(null)} onUpdate={update} onDelete={remove} requireProfile={() => requireProfile()} />}
+      {sheets}
+      {settings && <Settings profile={profile} onProfile={() => { setSettings(false); profile ? go(`#/u/${profile.user_id}`) : requireProfile('다른 사람에게 보일 이름과 아바타를 정해 주세요.'); }} onClose={() => setSettings(false)} waiting={waiting} syncError={sync === 'error' ? syncError : ''} onRetry={refresh} />}
     </div>
   );
 }

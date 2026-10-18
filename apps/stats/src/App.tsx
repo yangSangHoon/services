@@ -52,6 +52,9 @@ const EVENT_LABEL: Record<string, string> = {
   random: '추억 랜덤 꺼내기',
   'link-account': '이메일 연결',
   install: '홈 화면 설치',
+  publish: '찰나 공개',
+  follow: '구독',
+  like: '공감',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

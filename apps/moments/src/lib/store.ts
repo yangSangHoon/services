@@ -9,7 +9,11 @@ export interface Entry {
   photo_path: string | null;
   happened_at: string;
   created_at: string;
+  /** 없으면 private (예전 기록) */
+  visibility?: Visibility;
 }
+
+export type Visibility = 'private' | 'public';
 
 export interface Pending {
   entry: Entry;
@@ -92,3 +96,37 @@ export async function takeSharedPayload(): Promise<{ text: string; photo: Blob |
   await Promise.all([cache.delete(base + '__shared/text'), cache.delete(base + '__shared/photo')]);
   return { text, photo };
 }
+
+// 마지막으로 고른 공개 범위를 기억 (매번 고르지 않게)
+const VIS_KEY = 'moments:visibility';
+export const loadVisibility = (): Visibility => {
+  try {
+    return localStorage.getItem(VIS_KEY) === 'public' ? 'public' : 'private';
+  } catch {
+    return 'private';
+  }
+};
+export const saveVisibility = (v: Visibility) => {
+  try {
+    localStorage.setItem(VIS_KEY, v);
+  } catch {
+    /* noop */
+  }
+};
+
+// 안 보기로 한 사람 (이 기기에서만)
+const HIDE_KEY = 'moments:hidden-users';
+export const loadHidden = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(HIDE_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+};
+export const saveHidden = (ids: string[]) => {
+  try {
+    localStorage.setItem(HIDE_KEY, JSON.stringify(ids));
+  } catch {
+    /* noop */
+  }
+};

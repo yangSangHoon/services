@@ -48,9 +48,12 @@ export function flushPending(): Promise<number> {
   return running;
 }
 
+/** 내 기록만 (RLS 로는 남의 공개 글도 보이므로 user_id 로 거른다) */
 export async function fetchEntries(): Promise<Entry[]> {
+  const uid = await ensureUser();
   const { data, error } = await table('entries')
-    .select('id, body, mood, photo_path, happened_at, created_at')
+    .select('id, body, mood, photo_path, happened_at, created_at, visibility')
+    .eq('user_id', uid)
     .order('happened_at', { ascending: false })
     .limit(1000);
   if (error) throw error;

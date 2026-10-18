@@ -11,12 +11,15 @@ export function Detail({
   onClose,
   onUpdate,
   onDelete,
+  requireProfile,
 }: {
   entry: Entry;
   photo?: string;
   onClose: () => void;
   onUpdate: (e: Entry) => Promise<void>;
   onDelete: (e: Entry) => Promise<void>;
+  /** 공개 전환 전에 프로필 확인. false 면 취소 */
+  requireProfile: () => Promise<boolean>;
 }) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(entry.body);
@@ -35,6 +38,13 @@ export function Detail({
     if (!body.trim() && !mood && !entry.photo_path && !photo) return;
     await onUpdate({ ...entry, body: body.trim(), mood });
     setEditing(false);
+  };
+
+  const isPublic = entry.visibility === 'public';
+  const toggleVisibility = async () => {
+    if (!isPublic && !(await requireProfile())) return;
+    await onUpdate({ ...entry, visibility: isPublic ? 'private' : 'public' });
+    if (!isPublic) track('moments', 'publish');
   };
 
   const share = async () => {
@@ -64,6 +74,11 @@ export function Detail({
           <span>
             {dateLabel(d)} · {clock(d)}
           </span>
+          {!editing && (
+            <button className={`vis-toggle ${isPublic ? 'on' : ''}`} onClick={toggleVisibility}>
+              {isPublic ? '🌏 공개 중' : '🔒 나만 보기'}
+            </button>
+          )}
         </div>
 
         {editing ? (

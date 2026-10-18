@@ -31,6 +31,7 @@ export function MomentCard({
       <span className="card-time">
         {showDate ? `${dateLabel(d)} · ` : ''}
         {clock(d)}
+        {entry.visibility === 'public' && <span className="public"> · 🌏 공개</span>}
         {waiting && <span className="waiting"> · 기기에만 있음</span>}
       </span>
     </button>

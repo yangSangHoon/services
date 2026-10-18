@@ -2,10 +2,25 @@ import { authErrorMessage, isGuest, signInWithEmail, signOut, signUpWithEmail, u
 import { track } from '@lab/core/track';
 import { useState } from 'react';
 import { isInApp, isIOS, isStandalone, useInstallPrompt } from '../lib/install';
+import type { Profile } from '../lib/social';
 
 const APP_URL = 'https://yangsanghoon.github.io/services/moments/';
 
-export function Settings({ onClose, waiting, syncError, onRetry }: { onClose: () => void; waiting: number; syncError: string; onRetry: () => void }) {
+export function Settings({
+  profile,
+  onProfile,
+  onClose,
+  waiting,
+  syncError,
+  onRetry,
+}: {
+  profile: Profile | null;
+  onProfile: () => void;
+  onClose: () => void;
+  waiting: number;
+  syncError: string;
+  onRetry: () => void;
+}) {
   const { session } = useSession();
   const install = useInstallPrompt();
   const [copied, setCopied] = useState(false);
@@ -81,6 +96,16 @@ export function Settings({ onClose, waiting, syncError, onRetry }: { onClose: ()
             <p>앱으로 설치하면 갤러리에서 사진 <b>공유 → 찰나</b>를 고를 수 있어요. 사진이 붙은 채로 쓰는 화면이 열려요.</p>
           </details>
         )}
+
+        <h2>🌏 공개 프로필</h2>
+        <button className="profile-row" onClick={onProfile}>
+          <span className="avatar">{profile?.avatar ?? '＋'}</span>
+          <span>
+            <b>{profile?.nickname ?? '프로필 만들기'}</b>
+            <small className="muted">{profile ? '내 프로필 · 구독자 보기' : '공개 찰나를 쓰거나 구독하려면'}</small>
+          </span>
+          <span className="arrow">→</span>
+        </button>
 
         <h2>☁️ 내 기록</h2>
         <Account />

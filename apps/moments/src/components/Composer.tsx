@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MOODS } from '../lib/moods';
-import { loadDraft, saveDraft } from '../lib/store';
+import { loadDraft, saveDraft, type Visibility } from '../lib/store';
 import { nowLabel, WHEN } from '../lib/time';
 
 export interface Draft {
@@ -25,7 +25,18 @@ const PROMPTS = [
  * - 시간·날짜는 자동, 필요할 때만 "언제" 칩을 톡톡
  * - 저장하면 바로 빈 화면 → 다음 순간을 이어서 적을 수 있게
  */
-export function Composer({ initial, onSave }: { initial: Partial<Draft> | null; onSave: (d: Draft) => Promise<void> }) {
+export function Composer({
+  initial,
+  visibility,
+  onVisibility,
+  onSave,
+}: {
+  initial: Partial<Draft> | null;
+  visibility: Visibility;
+  /** 공개로 바꿀 때 프로필이 없으면 App 이 만들기 화면을 띄운다 */
+  onVisibility: (v: Visibility) => void;
+  onSave: (d: Draft) => Promise<void>;
+}) {
   const [body, setBody] = useState(() => initial?.body || loadDraft());
   const [mood, setMood] = useState<string | null>(initial?.mood ?? null);
   const [photo, setPhoto] = useState<Blob | null>(initial?.photo ?? null);
@@ -85,9 +96,14 @@ export function Composer({ initial, onSave }: { initial: Partial<Draft> | null; 
     >
       <div className="composer-meta">
         <span>{nowLabel(now)}</span>
-        <button type="button" className={`when ${when ? 'on' : ''}`} onClick={() => setWhen((w) => (w + 1) % WHEN.length)}>
-          🕒 {WHEN[when].label}
-        </button>
+        <span className="meta-chips">
+          <button type="button" className={`when ${visibility === 'public' ? 'on' : ''}`} onClick={() => onVisibility(visibility === 'public' ? 'private' : 'public')}>
+            {visibility === 'public' ? '🌏 공개' : '🔒 나만'}
+          </button>
+          <button type="button" className={`when ${when ? 'on' : ''}`} onClick={() => setWhen((w) => (w + 1) % WHEN.length)}>
+            🕒 {WHEN[when].label}
+          </button>
+        </span>
       </div>
 
       <div className={`paper ${burst ? 'saved' : ''}`} key={burst}>

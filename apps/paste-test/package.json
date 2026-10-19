@@ -1,0 +1,19 @@
+{
+  "name": "@lab/paste-test",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "lab": {
+    "title": "블로그 붙여넣기 테스트",
+    "emoji": "📋",
+    "description": "사진+글을 복사해 네이버 블로그에 붙여넣을 때 사진이 네이버로 옮겨지는지 확인",
+    "unlisted": true
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@lab/core": "*"
+  }
+}

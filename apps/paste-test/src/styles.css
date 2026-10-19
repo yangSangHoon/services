@@ -21,3 +21,5 @@ h1 { font-size: 24px; margin: 0 0 8px; }
 .verdict { padding: 10px 12px; border-radius: 10px; }
 .verdict.ok { background: #e8f8ee; }
 .verdict.bad { background: #fde8e1; color: var(--warn); }
+.btns .new { border-color: #f0694e; }
+.btns .new span { font-size: 11px; background: #f0694e; color: #fff; border-radius: 6px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; }

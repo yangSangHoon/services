@@ -62,6 +62,40 @@ export default function App() {
     }
   };
 
+  /** D: 사진(PNG) + 글(텍스트)을 한 항목에 같이 */
+  const copyImageWithText = async () => {
+    try {
+      const png = await toPng(abs(PHOTOS[0].file));
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': png, 'text/plain': new Blob([PHOTOS[0].text], { type: 'text/plain' }) }),
+      ]);
+      setStatus('✅ 사진 1장 + 글을 함께 복사했어요 (방법 D). 사진과 글이 둘 다 붙는지 봐 주세요.');
+    } catch {
+      setStatus('이 브라우저는 D 방식을 지원하지 않아요. PC 크롬으로 해 주세요.');
+    }
+  };
+
+  /** E: 사진 3장을 주소 대신 데이터(base64)로 넣은 HTML */
+  const copyDataHtml = async () => {
+    setStatus('사진을 데이터로 바꾸는 중…');
+    try {
+      const datas = await Promise.all(PHOTOS.map((p) => toDataUrl(abs(p.file))));
+      const html =
+        `<h2>${TITLE}</h2>` +
+        PHOTOS.map((p, i) => `<p><img src="${datas[i]}" alt="" width="1200" height="900"></p><p>${p.text}</p><p><br></p>`).join('') +
+        '<p>— 찰나에서 정리함 (E)</p>';
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([buildText()], { type: 'text/plain' }),
+        }),
+      ]);
+      setStatus('✅ 사진 3장을 데이터로 넣어 복사했어요 (방법 E). 사진 3장이 다 붙는지, 주소가 어디인지 봐 주세요.');
+    } catch {
+      setStatus('E 방식 복사에 실패했어요. PC 크롬으로 해 주세요.');
+    }
+  };
+
   const result: Result = !url.trim()
     ? null
     : /pstatic\.net|naver\.(com|net)|phinf/.test(url)
@@ -97,6 +131,12 @@ export default function App() {
         </button>
         <button onClick={() => copySelection()}>B. 선택해서 복사</button>
         <button onClick={copyImage}>C. 사진 1장만 이미지로 복사</button>
+        <button className="new" onClick={copyImageWithText}>
+          D. 사진 1장 + 글 함께 <span>NEW</span>
+        </button>
+        <button className="new" onClick={copyDataHtml}>
+          E. 글+사진 3장 (데이터 방식) <span>NEW</span>
+        </button>
       </div>
       {status && <p className="status">{status}</p>}
 
@@ -136,4 +176,14 @@ async function toPng(src: string) {
   c.height = img.naturalHeight;
   c.getContext('2d')!.drawImage(img, 0, 0);
   return new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('PNG'))), 'image/png'));
+}
+
+async function toDataUrl(src: string) {
+  const blob = await fetch(src).then((r) => r.blob());
+  return new Promise<string>((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result as string);
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(blob);
+  });
 }

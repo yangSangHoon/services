@@ -55,6 +55,15 @@ const EVENT_LABEL: Record<string, string> = {
   publish: '찰나 공개',
   follow: '구독',
   like: '공감',
+  post: '도시락 올림',
+  'post-photo': '사진과 도시락 올림',
+  recipe: '레시피 공유',
+  comment: '댓글',
+  'share-card': '리포트 카드 공유',
+  'crew-create': '멤버 모임 만들기',
+  'crew-join': '멤버 모임 가입',
+  'crew-invite': '멤버 초대',
+  dish: '반찬 당번 등록',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

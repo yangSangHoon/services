@@ -111,3 +111,21 @@ h2 { margin: 4px 0 6px; font-size: 22px; letter-spacing: -0.3px; word-break: kee
 @media (prefers-reduced-motion: reduce) {
   .overlay, .pop, .perk { animation: none; }
 }
+
+.grade {
+  width: 64px; height: 64px; margin: 8px auto 2px; border-radius: 18px; display: grid; place-items: center;
+  font-size: 36px; font-weight: 900; color: #fff; background: #8a8577; animation: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+.grade.g-S { background: linear-gradient(135deg, #ffb800, #ff6a3d); }
+.grade.g-A { background: var(--accent); }
+.grade.g-B { background: #3c9e6a; }
+.grade.g-C { background: #8a8577; }
+.owned { margin: 6px 0 0; font-size: 18px; letter-spacing: 2px; }
+.owned small { font-size: 11px; color: var(--muted); letter-spacing: 0; }
+.titles { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
+.title-chip {
+  font-size: 13px; font-weight: 800; padding: 6px 11px; border-radius: 999px;
+  background: var(--bg); border: 1.5px solid var(--line);
+}
+.title-chip em { font-style: normal; font-size: 10px; margin-left: 5px; color: #fff; background: #ff5a5a; padding: 1px 5px; border-radius: 6px; }
+.ghost.wide { width: 100%; margin-top: 8px; }

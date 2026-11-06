@@ -67,6 +67,18 @@ export function play(s: SoundName) {
     case 'year':
       [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.14, 'triangle', 0.1, 0, i * 0.09));
       break;
+    case 'combo':
+      tone(784, 0.08, 'square', 0.07);
+      tone(1175, 0.12, 'square', 0.07, 0, 0.07);
+      break;
+    case 'new':
+      tone(880, 0.07, 'triangle', 0.09);
+      tone(660, 0.07, 'triangle', 0.09, 0, 0.08);
+      tone(880, 0.12, 'triangle', 0.09, 0, 0.16);
+      break;
+    case 'fanfare':
+      [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, i === 5 ? 0.35 : 0.12, 'square', 0.08, 0, i * 0.1));
+      break;
     case 'over':
       [392, 330, 262, 196].forEach((f, i) => tone(f, 0.25, 'triangle', 0.12, 0, i * 0.16));
       break;

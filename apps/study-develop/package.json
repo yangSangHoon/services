@@ -1,0 +1,22 @@
+{
+  "name": "@lab/study-develop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "lab": {
+    "title": "자바 개발자 키우기",
+    "emoji": "☕",
+    "description": "공부방에서 배우고 시험장에서 승급! Java·SQL·Spring 퀴즈로 지망생에서 아키텍트까지 성장하는 학습 게임"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@lab/core": "*",
+    "sql.js": "^1.15.2"
+  },
+  "devDependencies": {
+    "@types/sql.js": "^1.4.11"
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    display: flex; align-items: center; gap: 60px; padding: 0 90px;
+    font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #1d2330;
+    background: linear-gradient(135deg, #fff4ea, #e6f4dc);
+  }
+  .left { flex: 1; display: flex; flex-direction: column; gap: 18px; }
+  .emoji { font-size: 120px; line-height: 1; }
+  h1 { font-size: 88px; letter-spacing: -2px; }
+  p { font-size: 34px; color: #5d6476; line-height: 1.4; }
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step { background: #fff; border-radius: 20px; padding: 14px 24px; font-size: 30px; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,0.08); white-space: nowrap; }
+  .step.hl { background: #e76f2c; color: #fff; }
+  small { font-size: 22px; color: #e76f2c; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="emoji">☕</div>
+    <h1>자바 개발자 키우기</h1>
+    <p>공부방에서 배우고 시험장에서 승급!<br />Java · SQL · Spring 학습 게임</p>
+    <small>yangsanghoon.github.io/services/study-develop</small>
+  </div>
+  <div class="steps">
+    <div class="step">🥚 Java 지망생</div>
+    <div class="step">🌱 신입 백엔드</div>
+    <div class="step">🌳 시니어 개발자</div>
+    <div class="step hl">🏛️ 아키텍트</div>
+  </div>
+</body>
+</html>

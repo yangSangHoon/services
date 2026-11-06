@@ -12,6 +12,7 @@
 | [🍱 싸왔어?](https://yangsanghoon.github.io/services/dosirak/) | 오늘 싸 온 도시락 자랑하고, 아낀 점심값 쌓고, 동료랑 반찬 나눠 먹기 |
 | [🏝️ 카탄](https://yangsanghoon.github.io/services/settlers/) | 카탄 룰 보드게임. 링크로 친구와 3~4인 온라인 대결, 빈 자리는 봇 |
 | [🛡️ 버텨라, 팀장님](https://yangsanghoon.github.io/services/team-leader/) | 팀원 불만·지각·상사 지시·희망퇴직 압박을 방패로 막고 정년까지 버티는 게임 |
+| [☕ 자바 개발자 키우기](https://yangsanghoon.github.io/services/study-develop/) | 공부방·시험장·실무실을 돌며 Java·SQL·Spring을 배우고 지망생에서 아키텍트까지 승급하는 학습 게임 |
 
 ## 방문 통계
 

@@ -28,6 +28,14 @@ export function World({ save, active, onEnter, onMentor }: Props) {
   const [target, setTarget] = useState<P | null>(null);
   const [walkers, setWalkers] = useState(() => WANDERERS.map((w) => ({ ...w })));
   const [bubble, setBubble] = useState<{ id: string; text: string } | null>(null);
+  // 처음 들어오면 '이게 나예요' 말풍선을 잠깐 띄운다
+  const [hello, setHello] = useState(true);
+  useEffect(() => {
+    if (!active) return;
+    setHello(true);
+    const t = setTimeout(() => setHello(false), 4500);
+    return () => clearTimeout(t);
+  }, [active]);
   const [tile, setTile] = useState(48);
   const [view, setView] = useState({ w: 360, h: 600 });
   const viewRef = useRef<HTMLDivElement>(null);
@@ -292,7 +300,10 @@ export function World({ save, active, onEnter, onMentor }: Props) {
           <span className="pet" style={at(pet)}>{petEmoji}</span>
         )}
         <div className="player" style={at(pos)}>
-          <span className="npc-name me">{save.name || '나'} · Lv.{Math.min(save.level, 10)}</span>
+          <span className="me-ring" />
+          <span className="me-arrow">▼</span>
+          <span className="npc-name me">⭐ {save.name || '나'} (나) · Lv.{Math.min(save.level, 10)}</span>
+          {hello && active && <span className="bubble me-hello">여기가 나예요! 👋</span>}
           <span className={`player-body ${facing < 0 ? 'flip' : ''}`}>
             <Avatar save={save} />
           </span>

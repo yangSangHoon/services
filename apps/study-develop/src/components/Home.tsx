@@ -19,7 +19,7 @@ export function Home({ save, onClose }: { save: Save; onClose: () => void }) {
   const totalOk = answered.reduce((a, r) => a + r.correct, 0);
 
   return (
-    <Room emoji="🏠" title="내 방" sub="프로필 · 학습 통계 · 배지" color="#4a8fa8" onClose={onClose}>
+    <Room emoji="🏠" title="내 방" sub="프로필 · 학습 통계 · 배지" color="#a6dde6" onClose={onClose}>
       <div className="profile">
         <Avatar save={save} size={2.6} />
         <div>

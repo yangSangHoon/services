@@ -20,7 +20,7 @@ export function Reward({ save, onClose }: { save: Save; onClose: () => void }) {
   const item = shown?.reward.item ? itemById(shown.reward.item) : undefined;
 
   return (
-    <Room emoji="🎁" title="보상함" sub="승급 시험에 합격하면 여기로 선물이 와요" color="#e0a100" onClose={onClose}>
+    <Room emoji="🎁" title="보상함" sub="승급 시험에 합격하면 여기로 선물이 와요" color="#ffe08a" onClose={onClose}>
       {shown && (
         <div className="reveal">
           <div className="reveal-burst">🎉</div>

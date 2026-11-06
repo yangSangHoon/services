@@ -38,7 +38,7 @@ export function ExamHall({ save, onClose, goReward }: { save: Save; onClose: () 
     const title =
       run.kind === 'exam' ? `Lv.${run.level} 승급 시험` : run.kind === 'interview' ? '모의 기술면접' : run.title;
     return (
-      <Room emoji="📝" title="시험장" color="#f2704e" onClose={() => setRun(null)}>
+      <Room emoji="📝" title="시험장" color="#ffb4a2" onClose={() => setRun(null)}>
         <Quiz
           questions={run.qs}
           mode={run.kind === 'exam' ? 'exam' : run.kind === 'interview' ? 'interview' : 'practice'}
@@ -90,7 +90,7 @@ export function ExamHall({ save, onClose, goReward }: { save: Save; onClose: () 
   const history = [...save.exams].reverse().slice(0, 8);
 
   return (
-    <Room emoji="📝" title="시험장" sub="연습으로 XP를 모으고, 승급 시험에 합격하면 레벨업!" color="#f2704e" onClose={onClose}>
+    <Room emoji="📝" title="시험장" sub="연습으로 XP를 모으고, 승급 시험에 합격하면 레벨업!" color="#ffb4a2" onClose={onClose}>
       {!graduated ? (
         <div className={`exam-card ${ready ? 'ready' : ''}`}>
           <div className="exam-top">

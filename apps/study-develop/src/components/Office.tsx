@@ -23,7 +23,7 @@ export function Office({ save, onClose }: { save: Save; onClose: () => void }) {
   if (quiz) {
     const pool = ALL_QUESTIONS.filter((q) => q.level <= cur && (q.type === '실무 상황' || q.type === '버그 찾기'));
     return (
-      <Room emoji="💻" title="실무실" color="#22a06b" onClose={() => setQuiz(false)}>
+      <Room emoji="💻" title="실무실" color="#9fe0c4" onClose={() => setQuiz(false)}>
         <Quiz questions={pickPractice(pool, save, 8)} mode="practice" feedback="instant" title="실무 상황 · 코드 리뷰" onClose={() => setQuiz(false)} />
       </Room>
     );
@@ -31,7 +31,7 @@ export function Office({ save, onClose }: { save: Save; onClose: () => void }) {
 
   if (mission) {
     return (
-      <Room emoji="🗄️" title={mission.title} sub={`Lv.${mission.level} SQL 미션`} color="#22a06b" onClose={() => setMission(null)}>
+      <Room emoji="🗄️" title={mission.title} sub={`Lv.${mission.level} SQL 미션`} color="#9fe0c4" onClose={() => setMission(null)}>
         <MissionView key={mission.id} mission={mission} solved={save.sqlSolved.includes(mission.id)} onNext={() => {
           const i = SQL_MISSIONS.findIndex((m) => m.id === mission.id);
           const n = SQL_MISSIONS[i + 1];
@@ -43,7 +43,7 @@ export function Office({ save, onClose }: { save: Save; onClose: () => void }) {
 
   const solved = save.sqlSolved.length;
   return (
-    <Room emoji="💻" title="실무실" sub="‘자바커피 주식회사’ 실제 DB에 SQL을 날려 보세요. 브라우저 안에서 SQLite가 돌아가요." color="#22a06b" onClose={onClose}>
+    <Room emoji="💻" title="실무실" sub="‘자바커피 주식회사’ 실제 DB에 SQL을 날려 보세요. 브라우저 안에서 SQLite가 돌아가요." color="#9fe0c4" onClose={onClose}>
       <Tabs
         value={tab}
         onChange={setTab}

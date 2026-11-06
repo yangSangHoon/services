@@ -18,14 +18,14 @@ export const ROWS = 14;
 export const START = { x: 9, y: 7 };
 
 export const PLACES: Place[] = [
-  { id: 'study', name: '공부방', emoji: '📚', x: 1, y: 1, w: 4, h: 3, color: '#5b7cfa', desc: '개념 카드 · 오답노트' },
-  { id: 'exam', name: '시험장', emoji: '📝', x: 8, y: 1, w: 4, h: 3, color: '#f2704e', desc: '연습 · 승급 시험 · 모의면접' },
-  { id: 'office', name: '실무실', emoji: '💻', x: 15, y: 1, w: 4, h: 3, color: '#22a06b', desc: 'SQL 미션 · 실무 퀴즈' },
-  { id: 'cafe', name: '자바 카페', emoji: '☕', x: 1, y: 8, w: 3, h: 2, color: '#a0703c', desc: '오늘의 퀴즈' },
-  { id: 'roadmap', name: '로드맵', emoji: '🗺️', x: 5, y: 9, w: 2, h: 2, color: '#7c5cd6', desc: '전체 레벨 과정' },
-  { id: 'reward', name: '보상함', emoji: '🎁', x: 9, y: 9, w: 2, h: 2, color: '#e0a100', desc: '승급 보상 받기' },
-  { id: 'shop', name: '굿즈샵', emoji: '🛍️', x: 12, y: 8, w: 3, h: 2, color: '#d6457a', desc: '아바타 꾸미기' },
-  { id: 'home', name: '내 방', emoji: '🏠', x: 16, y: 8, w: 3, h: 2, color: '#4a8fa8', desc: '프로필 · 배지 · 통계' },
+  { id: 'study', name: '공부방', emoji: '📚', x: 1, y: 1, w: 4, h: 3, color: '#a9c4ff', desc: '개념 카드 · 오답노트' },
+  { id: 'exam', name: '시험장', emoji: '📝', x: 8, y: 1, w: 4, h: 3, color: '#ffb4a2', desc: '연습 · 승급 시험 · 모의면접' },
+  { id: 'office', name: '실무실', emoji: '💻', x: 15, y: 1, w: 4, h: 3, color: '#9fe0c4', desc: 'SQL 미션 · 실무 퀴즈' },
+  { id: 'cafe', name: '자바 카페', emoji: '☕', x: 1, y: 8, w: 3, h: 2, color: '#ecc9a6', desc: '오늘의 퀴즈' },
+  { id: 'roadmap', name: '로드맵', emoji: '🗺️', x: 5, y: 9, w: 2, h: 2, color: '#cbb8ff', desc: '전체 레벨 과정' },
+  { id: 'reward', name: '보상함', emoji: '🎁', x: 9, y: 9, w: 2, h: 2, color: '#ffe08a', desc: '승급 보상 받기' },
+  { id: 'shop', name: '굿즈샵', emoji: '🛍️', x: 12, y: 8, w: 3, h: 2, color: '#ffbad8', desc: '아바타 꾸미기' },
+  { id: 'home', name: '내 방', emoji: '🏠', x: 16, y: 8, w: 3, h: 2, color: '#a6dde6', desc: '프로필 · 배지 · 통계' },
 ];
 
 export const doorOf = (p: Place) => ({ x: p.x + Math.floor(p.w / 2), y: p.y + p.h });

@@ -32,7 +32,7 @@ export function Cafe({ save, onClose }: { save: Save; onClose: () => void }) {
 
   if (playing) {
     return (
-      <Room emoji="☕" title="자바 카페" color="#a0703c" onClose={() => setPlaying(false)}>
+      <Room emoji="☕" title="자바 카페" color="#ecc9a6" onClose={() => setPlaying(false)}>
         <Quiz
           questions={daily}
           mode="daily"
@@ -49,7 +49,7 @@ export function Cafe({ save, onClose }: { save: Save; onClose: () => void }) {
   }
 
   return (
-    <Room emoji="☕" title="자바 카페" sub="하루 한 잔, 하루 다섯 문제. 매일 오면 출석 스트릭이 쌓여요." color="#a0703c" onClose={onClose}>
+    <Room emoji="☕" title="자바 카페" sub="하루 한 잔, 하루 다섯 문제. 매일 오면 출석 스트릭이 쌓여요." color="#ecc9a6" onClose={onClose}>
       <div className="barista">
         <span className="barista-emoji">🧑‍🍳</span>
         <div className="bubble-static">

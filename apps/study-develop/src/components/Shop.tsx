@@ -18,7 +18,7 @@ export function Shop({ save, onClose }: { save: Save; onClose: () => void }) {
   const items = ITEMS.filter((i) => i.slot === slot);
 
   return (
-    <Room emoji="🛍️" title="굿즈샵" sub="코인으로 아바타를 꾸며요. 정답·미션·출석으로 코인이 쌓여요." color="#d6457a" onClose={onClose} actions={<span className="coin-pill">🪙 {save.coins}</span>}>
+    <Room emoji="🛍️" title="굿즈샵" sub="코인으로 아바타를 꾸며요. 정답·미션·출석으로 코인이 쌓여요." color="#ffbad8" onClose={onClose} actions={<span className="coin-pill">🪙 {save.coins}</span>}>
       <div className="shop-preview">
         <Avatar save={save} size={2.4} />
       </div>

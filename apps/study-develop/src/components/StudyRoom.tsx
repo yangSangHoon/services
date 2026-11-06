@@ -20,7 +20,7 @@ export function StudyRoom({ save, onClose }: { save: Save; onClose: () => void }
   if (quiz) {
     const qs = quiz.ids.map((id) => questionById(id)!).filter(Boolean);
     return (
-      <Room emoji="📚" title="공부방" color="#5b7cfa" onClose={() => setQuiz(null)}>
+      <Room emoji="📚" title="공부방" color="#a9c4ff" onClose={() => setQuiz(null)}>
         <Quiz questions={qs} mode={quiz.mode} title={quiz.title} feedback="instant" onClose={() => setQuiz(null)} />
       </Room>
     );
@@ -31,7 +31,7 @@ export function StudyRoom({ save, onClose }: { save: Save; onClose: () => void }
     const idx = list.findIndex((l) => l.id === open.id);
     const read = save.lessonsRead.includes(open.id);
     return (
-      <Room emoji="📖" title={open.title} sub={`Lv.${open.level} ${LEVELS[open.level - 1].title} · ${idx + 1}/${list.length}`} color="#5b7cfa" onClose={() => setOpen(null)}>
+      <Room emoji="📖" title={open.title} sub={`Lv.${open.level} ${LEVELS[open.level - 1].title} · ${idx + 1}/${list.length}`} color="#a9c4ff" onClose={() => setOpen(null)}>
         <article className="lesson">
           <p className="lesson-summary">
             <Rich text={open.summary} />
@@ -86,7 +86,7 @@ export function StudyRoom({ save, onClose }: { save: Save; onClose: () => void }
       emoji="📚"
       title="공부방"
       sub="개념 카드를 읽고 XP를 모으세요. 틀린 문제는 오답노트에 쌓여요."
-      color="#5b7cfa"
+      color="#a9c4ff"
       onClose={onClose}
       actions={desk.length ? <span className="desk">{desk.map((d) => d.emoji).join('')}</span> : undefined}
     >

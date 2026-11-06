@@ -7,7 +7,7 @@ import { Room } from './Room';
 
 export function Roadmap({ save, onClose }: { save: Save; onClose: () => void }) {
   return (
-    <Room emoji="🗺️" title="커리어 로드맵" sub="Java 지망생에서 아키텍트까지 — 전체 성장 과정" color="#7c5cd6" onClose={onClose}>
+    <Room emoji="🗺️" title="커리어 로드맵" sub="Java 지망생에서 아키텍트까지 — 전체 성장 과정" color="#cbb8ff" onClose={onClose}>
       <ol className="roadmap">
         {LEVELS.map((m) => {
           const state = save.level > m.level ? 'done' : save.level === m.level ? 'now' : 'locked';

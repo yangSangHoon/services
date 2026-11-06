@@ -11,6 +11,7 @@
 | [📸 찰나](https://yangsanghoon.github.io/services/moments/) | 웃음 터진 그 순간, 10초 만에 남겨두는 추억 기록장 |
 | [🍱 싸왔어?](https://yangsanghoon.github.io/services/dosirak/) | 오늘 싸 온 도시락 자랑하고, 아낀 점심값 쌓고, 동료랑 반찬 나눠 먹기 |
 | [🏝️ 카탄](https://yangsanghoon.github.io/services/settlers/) | 카탄 룰 보드게임. 링크로 친구와 3~4인 온라인 대결, 빈 자리는 봇 |
+| [🛡️ 버텨라, 팀장님](https://yangsanghoon.github.io/services/team-leader/) | 팀원 불만·지각·상사 지시·희망퇴직 압박을 방패로 막고 정년까지 버티는 게임 |
 
 ## 방문 통계
 

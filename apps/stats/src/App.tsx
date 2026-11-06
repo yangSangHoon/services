@@ -64,6 +64,7 @@ const EVENT_LABEL: Record<string, string> = {
   'crew-join': '멤버 모임 가입',
   'crew-invite': '멤버 초대',
   dish: '반찬 당번 등록',
+  retire: '정년퇴임 달성',
 };
 const REFERRER_LABEL: Record<string, string> = {
   direct: '직접 접속',

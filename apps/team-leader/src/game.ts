@@ -148,6 +148,12 @@ interface YearDef {
 }
 
 export const START_AGE = 45;
+/** 방패 폭: 해가 갈수록(스테이지마다) 조금씩 좁아진다. 특전 '더 넓은 방패'는 그 위에 더해진다 */
+export const SHIELD_BASE_DEG = 64;
+export const SHIELD_SHRINK_DEG = 1.8; // 1년(스테이지)마다 줄어드는 각도
+export const SHIELD_MIN_DEG = 38;
+/** 공격 판정점(작은 원) 반지름 — 기준 필드 200px 기준 */
+export const HIT_DOT_R = 5;
 export const RETIRE_AGE = 60;
 const YEAR_LEN = 20;
 
@@ -462,7 +468,8 @@ export class Game {
     return 62 * this.s;
   }
   get arc() {
-    return deg(62 + 12 * Math.min(4, this.perks.wide ?? 0));
+    const base = Math.max(SHIELD_MIN_DEG, SHIELD_BASE_DEG - SHIELD_SHRINK_DEG * this.yearIndex);
+    return deg(base + 12 * Math.min(4, this.perks.wide ?? 0));
   }
   get rule(): RuleId | undefined {
     return yearInfo(this.age).rule;
@@ -879,7 +886,8 @@ export class Game {
   }
 
   private covered(theta: number) {
-    const tol = 0.1;
+    // 판정점(작은 원)이 방패에 조금이라도 걸치면 막힌 것
+    const tol = (HIT_DOT_R * this.s) / this.shieldR + 0.02;
     if (Math.abs(wrap(theta - this.shield)) <= this.arc / 2 + tol) return true;
     if (this.perks.back && Math.abs(wrap(theta - this.shield - Math.PI)) <= (this.arc * 0.55) / 2 + tol) return true;
     return false;
@@ -1179,8 +1187,15 @@ export class Game {
       ctx.globalAlpha = Math.max(0, a);
       ctx.fillStyle = this.dark ? 'rgba(20,19,26,0.92)' : 'rgba(255,255,255,0.94)';
       const bw = Math.min(w - 32, 340);
-      roundRect(ctx, cx - bw / 2, cy - 62, bw, 118, 18);
+      const shrunk = this.yearIndex > 0 && SHIELD_BASE_DEG - SHIELD_SHRINK_DEG * (this.yearIndex - 1) > SHIELD_MIN_DEG;
+      roundRect(ctx, cx - bw / 2, cy - 62, bw, shrunk ? 140 : 118, 18);
       ctx.fill();
+      if (shrunk) {
+        ctx.fillStyle = '#d14b4b';
+        ctx.font = '700 12px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`🛡️ 방패가 조금 좁아졌어요 (${Math.round((this.arc * 180) / Math.PI)}°) — 빨간 점을 막으세요`, cx, cy + 66);
+      }
       ctx.fillStyle = '#5b4bdb';
       ctx.font = '700 14px system-ui, sans-serif';
       ctx.textAlign = 'center';
@@ -1232,29 +1247,60 @@ export class Game {
     p.w ??= ctx.measureText(label).width;
     const bw = p.w + 14 * s;
     const bh = fs + (big ? 14 : 10) * s;
+    const dotR = HIT_DOT_R * s * (big ? 1.25 : 1);
+    // 설명 말풍선은 판정점 옆(날아오는 방향과 수직)에 딱 붙인다 — 진행 방향을 가리지 않게
+    const ux = -Math.sin(p.theta);
+    const uy = Math.cos(p.theta);
+    const half = Math.abs(ux) * (bw / 2) + Math.abs(uy) * (bh / 2);
+    const off = dotR + 3 * s + half;
+    // 화면 밖으로 나가면 반대쪽 옆으로
+    let side = 1;
+    const lx = x + ux * off;
+    if (lx - bw / 2 < 4 || lx + bw / 2 > this.w - 4) side = -1;
     ctx.save();
     if (p.bounce !== undefined) ctx.globalAlpha = Math.max(0, 1 - p.bounce / 0.35);
     ctx.translate(x, y);
     if (p.kind === 'late' && p.dashing) ctx.rotate(Math.sin(p.t * 30) * 0.08);
+
+    // 말풍선 (판정 없음 — 보기용)
+    ctx.save();
+    ctx.translate(ux * off * side, uy * off * side);
     if (big) ctx.scale(1 + Math.sin(p.t * 6) * 0.04, 1 + Math.sin(p.t * 6) * 0.04);
+    ctx.globalAlpha *= 0.92;
     ctx.fillStyle = def.fill;
     ctx.strokeStyle = def.ink;
-    ctx.lineWidth = big ? 2.5 : 1.5;
+    ctx.lineWidth = big ? 2 : 1.2;
     roundRect(ctx, -bw / 2, -bh / 2, bw, bh, bh / 2);
     ctx.fill();
     ctx.stroke();
-    // 남은 체력만큼 붉은 테두리
-    for (let i = 1; i < p.hp; i++) {
-      ctx.strokeStyle = '#ff5a5a';
-      ctx.lineWidth = 2;
-      const o = 4 * i;
-      roundRect(ctx, -bw / 2 - o, -bh / 2 - o, bw + o * 2, bh + o * 2, bh / 2 + o);
-      ctx.stroke();
-    }
     ctx.fillStyle = def.ink;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, 0, 0.5);
+    ctx.restore();
+
+    // 판정점: 이 작은 원을 방패로 막으면 된다
+    const pulse = 1 + Math.sin(p.t * 10) * 0.12;
+    const good = p.kind === 'good';
+    ctx.beginPath();
+    ctx.arc(0, 0, dotR * 1.9 * pulse, 0, TAU);
+    ctx.fillStyle = good ? 'rgba(60,196,106,0.25)' : 'rgba(255,60,60,0.22)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, dotR, 0, TAU);
+    ctx.fillStyle = good ? '#2fb35a' : '#ff3b3b';
+    ctx.fill();
+    ctx.lineWidth = 2 * s;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+    // 남은 체력만큼 판정점 둘레에 붉은 고리
+    for (let i = 1; i < p.hp; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, dotR + (3 + 3.5 * i) * s, 0, TAU);
+      ctx.strokeStyle = '#ff5a5a';
+      ctx.lineWidth = 1.8 * s;
+      ctx.stroke();
+    }
     ctx.restore();
   }
 

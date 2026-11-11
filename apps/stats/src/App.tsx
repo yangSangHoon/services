@@ -32,6 +32,9 @@ const appName = (slug: string) => (META[slug] ? `${META[slug].emoji} ${META[slug
 const PALETTE = ['#5b4bdb', '#e8592f', '#1f9d63', '#d6a01d', '#d93a7a', '#2f8fd9'];
 
 const EVENT_LABEL: Record<string, string> = {
+  family: '가족 만들기',
+  locate: '위치 요청',
+  ring: '소리 울리기',
   share: '공유',
   save: '저장',
   record: '녹화',

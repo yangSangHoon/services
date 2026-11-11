@@ -1,9 +1,10 @@
 // 버텨라, 팀장님 — 캔버스 게임 엔진 (React 와 분리된 순수 TS)
+import { STAFF } from './staff';
 
 export type KindId = 'complain' | 'late' | 'slack' | 'customer' | 'order' | 'layoff' | 'good';
-type Source = 'member' | 'boss' | 'ceo' | 'phone';
+export type Source = 'member' | 'boss' | 'ceo' | 'phone';
 
-interface KindDef {
+export interface KindDef {
   name: string;
   cause: string; // 퇴사 사유 문구
   source: Source;
@@ -138,26 +139,24 @@ export const KINDS: Record<KindId, KindDef> = {
 export const ATTACK_KINDS: KindId[] = ['complain', 'late', 'slack', 'customer', 'order', 'layoff'];
 
 // 51세 이후 해마다 하나씩 붙는 규칙 변주
-type RuleId = 'freeze' | 'tf' | 'reorg' | 'peak' | 'junior' | 'layoff2' | 'relay' | 'finale';
+export type RuleId = 'freeze' | 'tf' | 'reorg' | 'peak' | 'junior' | 'layoff2' | 'relay' | 'finale';
 
-interface YearDef {
+export interface YearDef {
   title: string;
   desc: string;
   mix: Partial<Record<KindId, number>>;
   rule?: RuleId;
 }
 
-export const START_AGE = 45;
 /** 방패 폭: 해가 갈수록(스테이지마다) 조금씩 좁아진다. 특전 '더 넓은 방패'는 그 위에 더해진다 */
 export const SHIELD_BASE_DEG = 64;
 export const SHIELD_SHRINK_DEG = 1.8; // 1년(스테이지)마다 줄어드는 각도
 export const SHIELD_MIN_DEG = 38;
 /** 공격 판정점(작은 원) 반지름 — 기준 필드 200px 기준 */
 export const HIT_DOT_R = 5;
-export const RETIRE_AGE = 60;
 const YEAR_LEN = 20;
 
-const YEARS: YearDef[] = [
+const LEADER_YEARS: YearDef[] = [
   { title: '팀장 승진', desc: '축하합니다! 오늘부터 불만은 전부 팀장 몫', mix: { complain: 1, good: 0.25 } },
   { title: '신입 입사', desc: '알람이 안 울렸대요. 매일요.', mix: { complain: 0.8, late: 0.8, good: 0.25 } },
   { title: '클레임 시즌', desc: '고객 전화는 어디서 올지 몰라요', mix: { complain: 0.6, late: 0.4, customer: 0.9, good: 0.25 } },
@@ -175,15 +174,11 @@ const YEARS: YearDef[] = [
   { title: '정년 D-1년', desc: '끝까지 버티세요. 마지막엔 사장님 면담이…', rule: 'finale', mix: { complain: 0.7, late: 0.5, customer: 0.7, order: 0.8, slack: 0.6, layoff: 0.6, good: 0.35 } },
 ];
 
-export function yearInfo(age: number) {
-  return YEARS[Math.min(YEARS.length - 1, Math.max(0, age - START_AGE))];
-}
-
-/** age 해까지 한 번이라도 등장한 공격 종류 */
-function kindsUpTo(age: number): Set<KindId> {
+/** yearIndex 해까지 한 번이라도 등장한 공격 종류 */
+function kindsUpTo(years: YearDef[], idx: number): Set<KindId> {
   const out = new Set<KindId>();
-  for (let i = 0; i <= Math.min(YEARS.length - 1, age - START_AGE); i++)
-    for (const k of Object.keys(YEARS[i].mix) as KindId[]) out.add(k);
+  for (let i = 0; i <= Math.min(years.length - 1, idx); i++)
+    for (const k of Object.keys(years[i].mix) as KindId[]) out.add(k);
   return out;
 }
 
@@ -214,9 +209,15 @@ export function gradeOf(hits: number): Grade {
   return hits === 0 ? 'S' : hits <= 2 ? 'A' : hits <= 5 ? 'B' : 'C';
 }
 
-export function rollPerks(taken: Record<string, number>, nextAge: number, n = 3): PerkDef[] {
-  const seen = kindsUpTo(nextAge);
-  const pool = PERKS.filter(
+/** 모드에 맞게 이름·설명을 바꾼 특전 목록 */
+export function perksOf(mode: Mode): PerkDef[] {
+  const t = MODES[mode].perkText;
+  return PERKS.map((p) => ({ ...p, ...t[p.id] }));
+}
+
+export function rollPerks(mode: Mode, taken: Record<string, number>, nextIdx: number, n = 3): PerkDef[] {
+  const seen = kindsUpTo(MODES[mode].years, nextIdx);
+  const pool = perksOf(mode).filter(
     (p) => (p.max === undefined || (taken[p.id] ?? 0) < p.max) && (!p.needs || p.needs.some((k) => seen.has(k))),
   );
   const out: PerkDef[] = [];
@@ -226,6 +227,7 @@ export function rollPerks(taken: Record<string, number>, nextAge: number, n = 3)
 
 // ---------- 칭호 ----------
 export interface RunResult {
+  mode: Mode;
   retired: boolean;
   age: number;
   cause: string;
@@ -246,7 +248,7 @@ export interface TitleDef {
   desc: string;
   test: (r: RunResult) => boolean;
 }
-export const TITLES: TitleDef[] = [
+const LEADER_TITLES: TitleDef[] = [
   { id: 'retire', name: '🎉 무사 정년', desc: '60세 정년퇴임', test: (r) => r.retired },
   { id: 'iron', name: '🏆 철벽 팀장', desc: '10번 이하로 맞고 정년퇴임', test: (r) => r.retired && r.totalHits <= 10 },
   { id: 'finale', name: '🧓 사장님도 인정한 팀장', desc: '마지막 면담을 막아냄', test: (r) => r.finaleBlocked },
@@ -263,9 +265,79 @@ export const TITLES: TitleDef[] = [
   { id: 'c-order', name: '📋 영혼까지 결재됨', desc: '무리한 지시로 퇴사', test: (r) => !r.retired && r.lastHit === 'order' },
   { id: 'c-layoff', name: '📦 희망(?)퇴직', desc: '희망퇴직 압박으로 퇴사', test: (r) => !r.retired && r.lastHit === 'layoff' },
 ];
-export const titlesOf = (r: RunResult) => TITLES.filter((t) => t.test(r));
 
-export type SoundName = 'block' | 'hit' | 'heal' | 'heavy' | 'warn' | 'year' | 'over' | 'combo' | 'new' | 'fanfare';
+// ---------- 모드 (팀장 / 막내) ----------
+export type Mode = 'leader' | 'staff';
+
+export interface AvatarDef {
+  source: Source;
+  emoji: string;
+  name: string;
+  angle: number; // 도
+  only?: RuleId;
+  hideIn?: RuleId;
+}
+
+/** 모드별 콘텐츠: 메커닉은 같고 대사·인물·연도표·칭호만 다르다 */
+export interface ModeDef {
+  id: Mode;
+  appName: string;
+  hero: string;
+  startAge: number;
+  endAge: number;
+  goal: string; // '정년퇴임'
+  goalShort: string; // HUD '정년까지 n년'
+  role: (yearIndex: number) => string; // 가운데 이름표
+  face: (yearIndex: number) => string;
+  kinds: Record<KindId, KindDef>;
+  years: YearDef[];
+  avatars: AvatarDef[];
+  junior: { emoji: string; name: string }; // 'junior' 규칙 해에 상사 자리에 앉는 사람
+  streakTitles: Record<number, string>;
+  finale: { call: string; label: string; pleads: string[]; win: string; lose: string };
+  perkText: Partial<Record<PerkId, { name?: string; desc: string }>>;
+  titles: TitleDef[];
+}
+
+const LEADER: ModeDef = {
+  id: 'leader',
+  appName: '버텨라, 팀장님',
+  hero: '🛡️',
+  startAge: 45,
+  endAge: 60,
+  goal: '정년퇴임',
+  goalShort: '정년',
+  role: () => '팀장',
+  face: (i) => (i >= 10 ? '👴' : i >= 5 ? '👨‍💼' : '🧑‍💼'),
+  kinds: KINDS,
+  years: LEADER_YEARS,
+  avatars: [
+    { source: 'member', emoji: '🧑‍💻', name: '김대리', angle: -12 },
+    { source: 'member', emoji: '👩‍💼', name: '이과장', angle: 38 },
+    { source: 'member', emoji: '👨‍💻', name: '박주임', angle: 90 },
+    { source: 'member', emoji: '🧑‍🎨', name: '최사원', angle: 142 },
+    { source: 'member', emoji: '👩‍🔬', name: '정인턴', angle: 192, hideIn: 'junior' },
+    { source: 'boss', emoji: '🤵', name: '상무', angle: -128 },
+    { source: 'boss', emoji: '🕴️', name: 'TF장', angle: -95, only: 'tf' },
+    { source: 'ceo', emoji: '🧓', name: '사장', angle: -62 },
+  ],
+  junior: { emoji: '👩‍🔬', name: '정상무' },
+  streakTitles: { 10: '칼답 팀장', 25: '프로 방어러', 50: '갓팀장', 100: '전설의 팀장' },
+  finale: {
+    call: '사장님: 잠깐 얘기 좀 할까?',
+    label: '마지막 면담',
+    pleads: ['그래도 생각해 봐', '조건 더 줄게', '마지막으로 묻네'],
+    win: '🎉 정년퇴임을 축하합니다!',
+    lose: '…그래도 버텼다',
+  },
+  perkText: {},
+  titles: LEADER_TITLES,
+};
+
+export const MODES: Record<Mode, ModeDef> = { leader: LEADER, staff: STAFF };
+export const titlesOf = (r: RunResult) => MODES[r.mode].titles.filter((t) => t.test(r));
+
+export type SoundName ='block' | 'hit' | 'heal' | 'heavy' | 'warn' | 'year' | 'over' | 'combo' | 'new' | 'fanfare';
 
 export interface GameCallbacks {
   onYearEnd: (age: number, grade: Grade) => void;
@@ -359,7 +431,6 @@ const DASH_AT = 0.62; // 지각: 남은 거리 비율이 이 아래로 오면 �
 const DASH_MUL = 4.2;
 const SAFE_GAP = 0.25; // 이 시간 안에
 const SAFE_ANGLE = deg(120); // 이 각도 이상 떨어져 도착하면 미룸
-const STREAK_TITLES: Record<number, string> = { 10: '칼답 팀장', 25: '프로 방어러', 50: '갓팀장', 100: '전설의 팀장' };
 const CONFETTI = ['#ff5a5a', '#ffc93c', '#3cc46a', '#4a9dff', '#9d6bff', '#ff8ad8'];
 
 export class Game {
@@ -373,7 +444,7 @@ export class Game {
   dark = false;
 
   // 상태
-  age = START_AGE;
+  age = 0;
   yearT = 0;
   introT = 0;
   maxMental = 100;
@@ -421,26 +492,24 @@ export class Game {
   constructor(
     private cb: GameCallbacks,
     seen: Iterable<KindId> = [],
+    mode: Mode = 'leader',
   ) {
     this.seen = new Set(seen);
-    const members: [string, string, RuleId?][] = [
-      ['🧑‍💻', '김대리'],
-      ['👩‍💼', '이과장'],
-      ['👨‍💻', '박주임'],
-      ['🧑‍🎨', '최사원'],
-      ['👩‍🔬', '정인턴', 'junior'],
-    ];
-    const angles = [-12, 38, 90, 142, 192];
-    members.forEach(([emoji, name, hideIn], i) => this.addAvatar({ source: 'member', emoji, name, hideIn }, angles[i]));
-    this.addAvatar({ source: 'boss', emoji: '🤵', name: '상무' }, -128);
-    this.addAvatar({ source: 'boss', emoji: '🕴️', name: 'TF장', only: 'tf' }, -95);
-    this.addAvatar({ source: 'ceo', emoji: '🧓', name: '사장' }, -62);
+    this.m = MODES[mode];
+    this.K = this.m.kinds;
+    this.age = this.m.startAge;
+    for (const { angle, ...a } of this.m.avatars) {
+      const r = deg(angle);
+      this.avatars.push({ ...a, angle: r, home: r, orig: r, wind: 0, pending: null });
+    }
     this.startYear();
   }
 
-  private addAvatar(a: Pick<Avatar, 'source' | 'emoji' | 'name' | 'only' | 'hideIn'>, angleDeg: number) {
-    const r = deg(angleDeg);
-    this.avatars.push({ ...a, angle: r, home: r, orig: r, wind: 0, pending: null });
+  readonly m: ModeDef;
+  private K: Record<KindId, KindDef>;
+
+  get info(): YearDef {
+    return this.m.years[Math.min(this.m.years.length - 1, Math.max(0, this.yearIndex))];
   }
 
   // ---------- 외부 입력 ----------
@@ -472,7 +541,7 @@ export class Game {
     return deg(base + 12 * Math.min(4, this.perks.wide ?? 0));
   }
   get rule(): RuleId | undefined {
-    return yearInfo(this.age).rule;
+    return this.info.rule;
   }
 
   applyPerk(id: PerkId) {
@@ -517,11 +586,11 @@ export class Game {
   }
 
   get yearIndex() {
-    return this.age - START_AGE;
+    return this.age - this.m.startAge;
   }
 
   get ceoPresent() {
-    return this.age >= START_AGE + 5;
+    return this.yearIndex >= 5;
   }
 
   private active(a: Avatar) {
@@ -644,7 +713,7 @@ export class Game {
         ceo.pending = 'layoff';
         ceo.finale = true;
         ceo.wind = 1.6;
-        this.banner('사장님: 잠깐 얘기 좀 할까?', 1.8);
+        this.banner(this.m.finale.call, 1.8);
         this.cb.onSound('warn');
         return;
       }
@@ -653,7 +722,7 @@ export class Game {
         if (this.finaleT > 0.35 && this.finaleT < 1.8 && Math.random() < dt * 14) this.confetti(this.cx + (Math.random() - 0.5) * this.w, -10, 1);
         if (this.finaleT >= 2.6) {
           this.ended = true;
-          this.age = RETIRE_AGE;
+          this.age = this.m.endAge;
           this.cb.onEnd(this.result(true));
         }
       }
@@ -714,7 +783,8 @@ export class Game {
     return {
       retired,
       age: this.age,
-      cause: KINDS[this.lastHit].cause,
+      cause: this.K[this.lastHit].cause,
+      mode: this.m.id,
       lastHit: this.lastHit,
       blocked: { ...this.blocked },
       hits: { ...this.hits },
@@ -739,18 +809,18 @@ export class Game {
   }
 
   private spawn() {
-    const mix = { ...yearInfo(this.age).mix };
+    const mix = { ...this.info.mix };
     if (this.rule === 'freeze') delete mix.good;
     if (mix.good) mix.good *= 1 + 0.4 * (this.perks.coffee ?? 0);
     let kind = this.pickKind(mix);
     if (!kind) return;
-    if (KINDS[kind].source === 'phone') {
+    if (this.K[kind].source === 'phone') {
       const t = WIND + 0.2 * (this.perks.mute ?? 0);
       this.phones.push({ angle: Math.random() * TAU - Math.PI, t, total: t, kind });
       this.cb.onSound('warn');
       return;
     }
-    let cands = this.avatars.filter((a) => a.source === KINDS[kind!].source && !a.pending && this.active(a));
+    let cands = this.avatars.filter((a) => a.source === this.K[kind!].source && !a.pending && this.active(a));
     if (!cands.length) {
       // 상사·사장이 이미 준비 중이면 버리지 말고 팀원 공격으로 다시 뽑기
       const memberMix: Partial<Record<KindId, number>> = {};
@@ -774,7 +844,7 @@ export class Game {
   }
 
   private launch(kind: KindId, angle: number, chain = false, delayed = false) {
-    const def = KINDS[kind];
+    const def = this.K[kind];
     const speed = def.speed * (1 + this.yearIndex * 0.045) * this.s;
     const start = this.fieldR - 34 * this.s;
 
@@ -810,7 +880,7 @@ export class Game {
       this.cb.onSound('new');
       this.cb.onNewKind?.(kind);
     }
-    const pool = this.age >= 50 ? [...def.texts, ...def.lateTexts] : def.texts;
+    const pool = this.yearIndex >= 5 ? [...def.texts, ...def.lateTexts] : def.texts;
     let hp = kind === 'layoff' ? 2 : 1;
     if (kind === 'layoff' && this.rule === 'layoff2') hp = 3;
     this.projs.push({
@@ -833,7 +903,7 @@ export class Game {
     const start = this.fieldR - 34 * this.s;
     this.projs.push({
       kind: 'layoff',
-      text: '마지막 면담',
+      text: this.m.finale.label,
       base: angle,
       theta: angle,
       dist: start,
@@ -908,14 +978,14 @@ export class Game {
     p.hp -= 1;
     this.blockFlash = 1;
     this.cb.onBuzz(p.kind === 'layoff' ? 25 : 8);
-    this.burst(x, y, KINDS[p.kind].ink === '#ffffff' ? '#888' : KINDS[p.kind].ink, 8);
+    this.burst(x, y, this.K[p.kind].ink === '#ffffff' ? '#888' : this.K[p.kind].ink, 8);
     if (p.hp > 0) {
       // 희망퇴직: 한 번 밀려났다가 다시 온다
       p.dist = Math.min(p.start, p.dist + 85 * this.s);
       p.speed *= 0.9;
       p.base = p.theta;
       this.shake = 0.35;
-      this.float(x, y, p.finale ? pick(['그래도 생각해 봐', '조건 더 줄게', '마지막으로 묻네']) : '아직 안 끝났어요', '#555', 13);
+      this.float(x, y, p.finale ? pick(this.m.finale.pleads) : '아직 안 끝났어요', '#555', 13);
       this.cb.onSound('heavy');
       return;
     }
@@ -932,10 +1002,10 @@ export class Game {
       this.finaleDone(true);
       return;
     }
-    this.float(x, y, pick(KINDS[p.kind].quips), '#5b4bdb', p.kind === 'layoff' ? 18 : 13);
+    this.float(x, y, pick(this.K[p.kind].quips), '#5b4bdb', p.kind === 'layoff' ? 18 : 13);
     if (this.streak % 10 === 0) {
       this.mental = Math.min(this.maxMental, this.mental + 5);
-      const name = STREAK_TITLES[this.streak];
+      const name = this.m.streakTitles[this.streak];
       this.float(this.cx, this.cy - 50 * this.s, `${this.streak}연속 방어!${name ? ` ${name}` : ''} 멘탈 +5`, '#0d8a3a', name ? 17 : 15);
       this.cb.onSound(name ? 'fanfare' : 'combo');
       if (name) this.confetti(this.cx, this.cy - 40 * this.s, 24);
@@ -947,7 +1017,7 @@ export class Game {
   private finaleDone(blocked: boolean) {
     this.finale = 2;
     this.finaleT = 0;
-    this.banner(blocked ? '🎉 정년퇴임을 축하합니다!' : '…그래도 버텼다', 2.4);
+    this.banner(blocked ? this.m.finale.win : this.m.finale.lose, 2.4);
     this.cb.onSound('fanfare');
     // 팀원들이 동시에 응원을 쏟아낸다
     if (blocked) {
@@ -958,7 +1028,7 @@ export class Game {
 
   private onHit(p: Proj) {
     p.dead = true;
-    const def = KINDS[p.kind];
+    const def = this.K[p.kind];
     if (p.kind === 'good') {
       const heal = Math.round(-def.dmg * (1 + 0.25 * (this.perks.coffee ?? 0)));
       this.mental = Math.min(this.maxMental, this.mental + heal);
@@ -1077,14 +1147,15 @@ export class Game {
         x += Math.sin(this.time * 60) * 2.5 * s;
       }
       const isJunior = junior && a.source === 'boss' && !a.only;
+      const J = this.m.junior;
       ctx.fillStyle = C.desk;
       roundRect(ctx, x - 20 * s, y - 6 * s, 40 * s, 14 * s, 4 * s);
       ctx.fill();
       ctx.font = `${(a.finale ? 34 : 26) * s}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-      ctx.fillText(isJunior ? '👩‍🔬' : a.emoji, x, y - 8 * s);
+      ctx.fillText(isJunior ? J.emoji : a.emoji, x, y - 8 * s);
       ctx.font = `600 ${10 * s}px system-ui, sans-serif`;
       ctx.fillStyle = C.muted;
-      ctx.fillText(isJunior ? '정상무' : a.name, x, y + 16 * s);
+      ctx.fillText(isJunior ? J.name : a.name, x, y + 16 * s);
       if (a.pending) {
         // 예고: 종류 아이콘을 띄워 무엇이 올지 미리 보이게
         const big = a.pending === 'layoff';
@@ -1095,7 +1166,7 @@ export class Game {
         ctx.arc(x + 16 * s, y - 25 * s, r, 0, TAU);
         ctx.fill();
         ctx.font = `${(big ? 13 : 11.5) * s}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-        ctx.fillText(good ? '♥' : KINDS[a.pending].icon, x + 16 * s, y - 24.5 * s);
+        ctx.fillText(good ? '♥' : this.K[a.pending].icon, x + 16 * s, y - 24.5 * s);
       }
     }
 
@@ -1114,7 +1185,7 @@ export class Game {
 
     // 팀장
     const leader =
-      this.finale === 2 ? '🥳' : this.hurtT > 0 ? '😵' : this.ended && this.mental <= 0 ? '😵' : this.age >= 55 ? '👴' : this.age >= 50 ? '👨‍💼' : '🧑‍💼';
+      this.finale === 2 ? '🥳' : this.hurtT > 0 ? '😵' : this.ended && this.mental <= 0 ? '😵' : this.m.face(this.yearIndex);
     ctx.fillStyle = C.desk;
     roundRect(ctx, cx - 30 * s, cy + 10 * s, 60 * s, 16 * s, 5 * s);
     ctx.fill();
@@ -1122,7 +1193,7 @@ export class Game {
     ctx.fillText(leader, cx, cy - 2 * s);
     ctx.font = `700 ${10 * s}px system-ui, sans-serif`;
     ctx.fillStyle = C.muted;
-    ctx.fillText('팀장', cx, cy + 34 * s);
+    ctx.fillText(this.m.role(this.yearIndex), cx, cy + 34 * s);
     if (this.streak >= 3 && !this.ended) {
       ctx.fillStyle = '#5b4bdb';
       ctx.font = `800 ${12 * s}px system-ui, sans-serif`;
@@ -1183,7 +1254,7 @@ export class Game {
     // 연도 인트로 배너
     if (this.introT > 0 && !this.ended) {
       const a = Math.min(1, this.introT / 0.4, (2.2 - this.introT) / 0.3);
-      const info = yearInfo(this.age);
+      const info = this.info;
       ctx.globalAlpha = Math.max(0, a);
       ctx.fillStyle = this.dark ? 'rgba(20,19,26,0.92)' : 'rgba(255,255,255,0.94)';
       const bw = Math.min(w - 32, 340);
@@ -1199,7 +1270,7 @@ export class Game {
       ctx.fillStyle = '#5b4bdb';
       ctx.font = '700 14px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`${this.age}세 · ${this.yearIndex + 1}년차 팀장${info.rule ? ' · ⚠️ 특별 규칙' : ''}`, cx, cy - 34);
+      ctx.fillText(`${this.age}세 · ${this.yearIndex + 1}년차 ${this.m.role(this.yearIndex)}${info.rule ? ' · ⚠️ 특별 규칙' : ''}`, cx, cy - 34);
       ctx.fillStyle = C.text;
       ctx.font = '800 26px system-ui, sans-serif';
       ctx.fillText(info.title, cx, cy - 4);
@@ -1237,7 +1308,7 @@ export class Game {
   }
 
   private drawProj(ctx: CanvasRenderingContext2D, p: Proj) {
-    const def = KINDS[p.kind];
+    const def = this.K[p.kind];
     const { s } = this;
     const { x, y } = this.pos(p.theta, p.dist);
     const big = p.kind === 'layoff';
@@ -1316,7 +1387,7 @@ export class Game {
     const ageW = ctx.measureText(`${this.age}세`).width;
     ctx.fillStyle = C.muted;
     ctx.font = '600 13px system-ui, sans-serif';
-    fitText(ctx, `· ${yearInfo(this.age).title} · 정년까지 ${RETIRE_AGE - this.age}년`, pad + ageW + 6, 30, right - pad - ageW - 6);
+    fitText(ctx, `· ${this.info.title} · ${this.m.goalShort}까지 ${this.m.endAge - this.age}년`, pad + ageW + 6, 30, right - pad - ageW - 6);
 
     // 연도 진행
     const yw = right - pad;

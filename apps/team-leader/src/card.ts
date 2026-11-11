@@ -1,5 +1,5 @@
 // 결과 공유용 사직서 / 퇴직증명서 이미지 (캔버스로 그려 PNG Blob 으로)
-import { KINDS, PERKS, START_AGE, type RunResult, type TitleDef } from './game';
+import { MODES, perksOf, type RunResult, type TitleDef } from './game';
 
 const W = 1080;
 const H = 1350;
@@ -10,6 +10,8 @@ export function makeCard(r: RunResult, titles: TitleDef[], url: string): Promise
   c.width = W;
   c.height = H;
   const ctx = c.getContext('2d')!;
+  const m = MODES[r.mode];
+  const staff = r.mode === 'staff';
 
   // 배경 + 종이
   ctx.fillStyle = r.retired ? '#5b4bdb' : '#3a3a44';
@@ -27,17 +29,17 @@ export function makeCard(r: RunResult, titles: TitleDef[], url: string): Promise
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#1d1d1f';
   ctx.font = `800 92px ${FONT}`;
-  ctx.fillText(r.retired ? '퇴 직 증 명 서' : '사   직   서', W / 2, 230);
+  ctx.fillText(r.retired ? (staff ? '승 진 발 령 장' : '퇴 직 증 명 서') : '사   직   서', W / 2, 230);
 
   // 항목
   const perkLine =
     Object.entries(r.perks)
-      .map(([id, n]) => `${PERKS.find((p) => p.id === id)?.emoji ?? ''}${n > 1 ? `×${n}` : ''}`)
+      .map(([id, n]) => `${perksOf(r.mode).find((p) => p.id === id)?.emoji ?? ''}${n > 1 ? `×${n}` : ''}`)
       .join(' ') || '없음';
   const rows: [string, string][] = [
-    ['성       명', '팀장 (본인)'],
-    ['재 직 기 간', `${START_AGE}세 ~ ${r.age}세 (${r.age - START_AGE}년)`],
-    ['사       유', r.retired ? '정년퇴임' : r.cause],
+    ['성       명', `${staff && !r.retired ? m.role(r.age - m.startAge) : '팀장'} (본인)`],
+    ['재 직 기 간', `${m.startAge}세 ~ ${r.age}세 (${r.age - m.startAge}년)`],
+    ['사       유', r.retired ? m.goal : r.cause],
     ['막아낸 말', `${r.totalBlocked}건`],
     ['받은 응원', `${r.hits.good}잔`],
     ['최고 연속 방어', `${r.bestStreak}연속`],
@@ -74,11 +76,15 @@ export function makeCard(r: RunResult, titles: TitleDef[], url: string): Promise
   ctx.fillStyle = '#4b4740';
   ctx.font = `500 36px ${FONT}`;
   ctx.fillText(
-    r.retired ? '위 사람은 모든 공격을 견디고 정년을 맞이하였기에' : `위 사람은 ${KINDS[r.lastHit].name}에 무너져`,
+    r.retired
+      ? staff
+        ? '위 사람은 모든 잔소리와 회식을 견디었기에'
+        : '위 사람은 모든 공격을 견디고 정년을 맞이하였기에'
+      : `위 사람은 ${m.kinds[r.lastHit].name}에 무너져`,
     W / 2,
     y,
   );
-  ctx.fillText(r.retired ? '이를 증명합니다.' : '이에 사직하고자 합니다.', W / 2, y + 52);
+  ctx.fillText(r.retired ? (staff ? '팀장으로 발령합니다.' : '이를 증명합니다.') : '이에 사직하고자 합니다.', W / 2, y + 52);
 
   // 도장
   ctx.save();
@@ -91,12 +97,12 @@ export function makeCard(r: RunResult, titles: TitleDef[], url: string): Promise
   ctx.arc(0, 0, 74, 0, Math.PI * 2);
   ctx.stroke();
   ctx.font = `900 46px ${FONT}`;
-  ctx.fillText(r.retired ? '정년' : '퇴사', 0, 2);
+  ctx.fillText(r.retired ? (staff ? '승진' : '정년') : '퇴사', 0, 2);
   ctx.restore();
 
   ctx.fillStyle = '#76716a';
   ctx.font = `700 34px ${FONT}`;
-  ctx.fillText('🛡️ 버텨라, 팀장님', W / 2, H - 175);
+  ctx.fillText(`${m.hero} ${m.appName}`, W / 2, H - 175);
   ctx.font = `500 26px ${FONT}`;
   ctx.fillText(url.replace(/^https?:\/\//, ''), W / 2, H - 132);
 

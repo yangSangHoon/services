@@ -4,15 +4,13 @@ import { makeCard } from './card';
 import {
   ATTACK_KINDS,
   Game,
-  KINDS,
-  PERKS,
-  RETIRE_AGE,
-  START_AGE,
-  TITLES,
+  MODES,
+  perksOf,
   rollPerks,
   titlesOf,
   type Grade,
   type KindId,
+  type Mode,
   type PerkDef,
   type RunResult,
   type TitleDef,
@@ -21,14 +19,16 @@ import { isMuted, play, setMuted, unlockAudio } from './sound';
 
 type Screen = 'title' | 'play' | 'perk' | 'pause' | 'end';
 
-const BEST_KEY = 'team-leader:best';
-const SEEN_KEY = 'team-leader:seen';
+// 팀장 모드는 예전 키 그대로 (기록 유지), 막내 모드는 staff- 접두어
+const BEST_KEY = (m: Mode) => (m === 'leader' ? 'team-leader:best' : 'team-leader:staff-best');
+const SEEN_KEY = (m: Mode) => (m === 'leader' ? 'team-leader:seen' : 'team-leader:staff-seen');
 const TITLES_KEY = 'team-leader:titles';
+const MODE_KEY = 'team-leader:mode';
 const SHARE_URL = 'https://yangsanghoon.github.io/services/team-leader/';
 
-function loadBest(): number {
+function loadBest(m: Mode): number {
   try {
-    return Number(localStorage.getItem(BEST_KEY)) || 0;
+    return Number(localStorage.getItem(BEST_KEY(m))) || 0;
   } catch {
     return 0;
   }
@@ -56,13 +56,29 @@ const GRADE_TEXT: Record<Grade, string> = {
   C: '평가 납득 안 돼요…',
 };
 
-function saveBest(age: number) {
+function loadMode(): Mode {
   try {
-    localStorage.setItem(BEST_KEY, String(age));
+    return localStorage.getItem(MODE_KEY) === 'staff' ? 'staff' : 'leader';
+  } catch {
+    return 'leader';
+  }
+}
+
+function saveBest(m: Mode, age: number) {
+  try {
+    localStorage.setItem(BEST_KEY(m), String(age));
   } catch {
     /* 무시 */
   }
 }
+
+const STAFF_SPEECHES = [
+  '팀장이 되었습니다. 이제 불만은 제 몫이네요.',
+  '막내 때 들은 말들, 후배에게는 안 하겠습니다.',
+  '라떼는… 아니, 아무 말도 안 하겠습니다.',
+  '회식은 1차만 하겠습니다. 약속합니다.',
+  '15년 버틴 나에게 박수를.',
+];
 
 const SPEECHES = [
   '여러분 덕분에 버텼습니다. 아니, 여러분 때문에 버텼습니다.',
@@ -74,10 +90,13 @@ const SPEECHES = [
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
+  const [mode, setModeState] = useState<Mode>(loadMode);
+  const M = MODES[mode];
   const [perks, setPerks] = useState<PerkDef[]>([]);
-  const [yearAge, setYearAge] = useState(START_AGE);
+  const [yearAge, setYearAge] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
-  const [best, setBest] = useState(loadBest);
+  const [bests, setBests] = useState(() => ({ leader: loadBest('leader'), staff: loadBest('staff') }));
+  const best = bests[mode];
   const [muted, setMutedState] = useState(isMuted);
   const [copied, setCopied] = useState(false);
   const [game, setGame] = useState<Game | null>(null);
@@ -85,13 +104,25 @@ export default function App() {
   const [owned, setOwned] = useState<string[]>(() => loadList(TITLES_KEY));
   const [earned, setEarned] = useState<{ t: TitleDef; isNew: boolean }[]>([]);
 
-  const start = () => {
+  const pickMode = (m: Mode) => {
+    setModeState(m);
+    try {
+      localStorage.setItem(MODE_KEY, m);
+    } catch {
+      /* 무시 */
+    }
+  };
+
+  const ownedHere = M.titles.filter((t) => owned.includes(t.id)).length;
+
+  const start = (m: Mode = mode) => {
     unlockAudio();
+    if (m !== mode) pickMode(m);
     const g = new Game({
       onYearEnd: (age, gr) => {
         setYearAge(age);
         setGrade(gr);
-        setPerks(rollPerks(g.perks, age + 1, gr === 'S' ? 4 : 3));
+        setPerks(rollPerks(m, g.perks, g.yearIndex + 1, gr === 'S' ? 4 : 3));
         setScreen('perk');
       },
       onEnd: (r) => {
@@ -103,25 +134,25 @@ export default function App() {
         setOwned(all);
         setResult(r);
         setScreen('end');
-        track('team-leader', r.retired ? 'retire' : 'finish');
-        setBest((b) => {
-          if (r.age > b) {
-            saveBest(r.age);
-            return r.age;
+        track('team-leader', `${m === 'staff' ? 'staff-' : ''}${r.retired ? 'retire' : 'finish'}`);
+        setBests((b) => {
+          if (r.age > b[m]) {
+            saveBest(m, r.age);
+            return { ...b, [m]: r.age };
           }
           return b;
         });
       },
       onSound: play,
       onBuzz: (ms) => navigator.vibrate?.(ms),
-      onNewKind: (k) => saveList(SEEN_KEY, [...new Set([...loadList(SEEN_KEY), k])]),
-    }, loadList(SEEN_KEY) as KindId[]);
+      onNewKind: (k) => saveList(SEEN_KEY(m), [...new Set([...loadList(SEEN_KEY(m)), k])]),
+    }, loadList(SEEN_KEY(m)) as KindId[], m);
     setGame(g);
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g;
     setResult(null);
     setCopied(false);
     setScreen('play');
-    track('team-leader', 'start');
+    track('team-leader', m === 'staff' ? 'staff-start' : 'start');
   };
 
   const choosePerk = (p: PerkDef) => {
@@ -150,11 +181,11 @@ export default function App() {
     track('team-leader', 'share-card');
     const blob = await makeCard(result, earned.map((e) => e.t), SHARE_URL);
     if (!blob) return;
-    const name = result.retired ? '퇴직증명서.png' : '사직서.png';
+    const name = result.retired ? (result.mode === 'staff' ? '승진발령장.png' : '퇴직증명서.png') : '사직서.png';
     const file = new File([blob], name, { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: '버텨라, 팀장님', text: SHARE_URL });
+        await navigator.share({ files: [file], title: M.appName, text: SHARE_URL });
         return;
       } catch {
         /* 취소 또는 실패 → 저장으로 */
@@ -170,13 +201,13 @@ export default function App() {
   const share = async () => {
     if (!result) return;
     const text = result.retired
-      ? `🎉 버텨라, 팀장님 — 공격 ${result.totalBlocked}개를 막고 정년퇴임했습니다! 당신도 버틸 수 있을까요?`
-      : `🛡️ 버텨라, 팀장님 — ${result.age}세, ${result.cause}에 무너졌습니다… 당신은 정년까지 버틸 수 있을까요?`;
+      ? `🎉 ${M.appName} — 공격 ${result.totalBlocked}개를 막고 ${M.goal}했습니다! 당신도 버틸 수 있을까요?`
+      : `${M.hero} ${M.appName} — ${result.age}세, ${result.cause}에 무너졌습니다… 당신은 ${M.goal}까지 버틸 수 있을까요?`;
     track('team-leader', 'share');
     const mobile = matchMedia('(pointer: coarse)').matches;
     if (mobile && navigator.share) {
       try {
-        await navigator.share({ title: '버텨라, 팀장님', text, url: SHARE_URL });
+        await navigator.share({ title: M.appName, text, url: SHARE_URL });
       } catch {
         /* 취소 */
       }
@@ -212,29 +243,44 @@ export default function App() {
       {screen === 'title' && (
         <div className="overlay solid">
           <div className="card pop">
-            <div className="hero">🛡️</div>
-            <h1>버텨라, 팀장님</h1>
-            <p className="lead">
-              45세에 팀장이 되었습니다.
-              <br />
-              팀원·상사·사장의 공격을 막고 <b>{RETIRE_AGE}세 정년</b>까지 버티세요.
-            </p>
+            <div className="modes" role="tablist" aria-label="모드 선택">
+              {(['leader', 'staff'] as Mode[]).map((id) => (
+                <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'on' : ''} onClick={() => pickMode(id)}>
+                  {id === 'leader' ? '👔 팀장 모드' : '🐣 막내 모드'}
+                </button>
+              ))}
+            </div>
+            <div className="hero">{M.hero}</div>
+            <h1>{M.appName}</h1>
+            {mode === 'leader' ? (
+              <p className="lead">
+                45세에 팀장이 되었습니다.
+                <br />
+                팀원·상사·사장의 공격을 막고 <b>{M.endAge}세 정년</b>까지 버티세요.
+              </p>
+            ) : (
+              <p className="lead">
+                30세에 신입으로 입사했습니다.
+                <br />
+                선배·팀장·부장의 공격을 막고 <b>{M.endAge}세 팀장 승진</b>까지 버티세요.
+              </p>
+            )}
             <p className="how">
               화면을 터치·드래그하면 그 방향으로 방패가 돌아가요 (키보드 ← →).
               <br />
               새로운 공격은 처음 나올 때 알려드려요.
             </p>
             <ul className="legend">
-              <li style={{ background: KINDS.good.fill, color: KINDS.good.ink }}>☕ 응원은 막지 말고 받기!</li>
+              <li style={{ background: M.kinds.good.fill, color: M.kinds.good.ink }}>☕ 응원은 막지 말고 받기!</li>
             </ul>
             <div style={{ height: 18 }} />
-            <button className="primary" onClick={start}>
-              출근하기
+            <button className="primary" onClick={() => start()}>
+              {mode === 'leader' ? '출근하기' : '첫 출근하기'}
             </button>
             {best > 0 && (
               <p className="muted small">
-                최고 기록: {best >= RETIRE_AGE ? '🎉 정년퇴임' : `${best}세까지 버팀`}
-                {owned.length > 0 && ` · 칭호 ${owned.length}/${TITLES.length}`}
+                최고 기록: {best >= M.endAge ? `🎉 ${M.goal}` : `${best}세까지 버팀`}
+                {ownedHere > 0 && ` · 칭호 ${ownedHere}/${M.titles.length}`}
               </p>
             )}
           </div>
@@ -266,7 +312,7 @@ export default function App() {
                 보유:{' '}
                 {Object.entries(game.perks).map(([id, n]) => (
                   <span key={id}>
-                    {PERKS.find((p) => p.id === id)?.emoji}
+                    {perksOf(mode).find((p) => p.id === id)?.emoji}
                     {n > 1 && <small>×{n}</small>}
                   </span>
                 ))}
@@ -292,17 +338,23 @@ export default function App() {
           <div className="card pop">
             {result.retired ? (
               <>
-                <div className="hero">🎉</div>
-                <p className="eyebrow">60세 정년퇴임</p>
-                <h2>끝까지 버텼습니다!</h2>
-                <p className="quote">“{SPEECHES[result.totalBlocked % SPEECHES.length]}”</p>
+                <div className="hero">{mode === 'staff' ? '👔' : '🎉'}</div>
+                <p className="eyebrow">
+                  {M.endAge}세 {M.goal}
+                </p>
+                <h2>{mode === 'staff' ? '드디어 팀장이 되었습니다!' : '끝까지 버텼습니다!'}</h2>
+                <p className="quote">
+                  “{(mode === 'staff' ? STAFF_SPEECHES : SPEECHES)[result.totalBlocked % SPEECHES.length]}”
+                </p>
               </>
             ) : (
               <>
                 <div className="hero">📦</div>
                 <p className="eyebrow">{result.age}세 퇴사</p>
                 <h2>{result.cause}에 무너졌습니다</h2>
-                <p className="muted">정년까지 {RETIRE_AGE - result.age}년 남았었는데…</p>
+                <p className="muted">
+                  {M.goal}까지 {M.endAge - result.age}년 남았었는데…
+                </p>
               </>
             )}
             {earned.length > 0 && (
@@ -325,15 +377,15 @@ export default function App() {
                 <span>최고 연속 방어</span>
               </div>
               <div>
-                <b>{result.age - START_AGE}년</b>
-                <span>팀장 경력</span>
+                <b>{result.age - M.startAge}년</b>
+                <span>{mode === 'staff' ? '회사 생활' : '팀장 경력'}</span>
               </div>
             </div>
             <ul className="breakdown">
               {ATTACK_KINDS.filter((k) => result.blocked[k] + result.hits[k] > 0).map((k) => (
                 <li key={k}>
                   <span>
-                    {KINDS[k].icon} {KINDS[k].name}
+                    {M.kinds[k].icon} {M.kinds[k].name}
                   </span>
                   <span>
                     막음 <b>{result.blocked[k]}</b> · 맞음 <b className="bad">{result.hits[k]}</b>
@@ -347,8 +399,13 @@ export default function App() {
                 </li>
               )}
             </ul>
+            {mode === 'staff' && result.retired && (
+              <button className="primary wide" onClick={() => start('leader')}>
+                👔 팀장으로 이어서 출근하기
+              </button>
+            )}
             <div className="row">
-              <button className="primary" onClick={start}>
+              <button className={mode === 'staff' && result.retired ? 'ghost' : 'primary'} onClick={() => start()}>
                 다시 출근하기
               </button>
               <button className="ghost" onClick={share}>
@@ -356,10 +413,14 @@ export default function App() {
               </button>
             </div>
             <button className="ghost wide" onClick={shareCard}>
-              {result.retired ? '🎉 퇴직증명서 이미지' : '📄 사직서 이미지'}
+              {result.retired ? (mode === 'staff' ? '👔 승진 발령장 이미지' : '🎉 퇴직증명서 이미지') : '📄 사직서 이미지'}
             </button>
             <p className="muted small">
-              칭호 도감 {owned.length}/{TITLES.length}
+              칭호 도감 {ownedHere}/{M.titles.length}
+              {' · '}
+              <button className="link" onClick={() => setScreen('title')}>
+                모드 바꾸기
+              </button>
             </p>
           </div>
         </div>

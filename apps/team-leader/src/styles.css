@@ -129,3 +129,10 @@ h2 { margin: 4px 0 6px; font-size: 22px; letter-spacing: -0.3px; word-break: kee
 }
 .title-chip em { font-style: normal; font-size: 10px; margin-left: 5px; color: #fff; background: #ff5a5a; padding: 1px 5px; border-radius: 6px; }
 .ghost.wide { width: 100%; margin-top: 8px; }
+
+/* 모드 선택 (팀장 / 막내) */
+.modes { display: flex; gap: 4px; padding: 4px; margin: 0 auto 14px; border-radius: 999px; background: var(--line); width: fit-content; }
+.modes button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.modes button.on { background: var(--card); color: var(--fg); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.primary.wide { margin-top: 16px; }
+.link { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }

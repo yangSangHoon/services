@@ -20,6 +20,7 @@ import {
   loadMe,
   newFamilyCode,
   normalizeCode,
+  OFFICIAL_FIND,
   saveFamily,
   saveMe,
   type Me,
@@ -540,11 +541,44 @@ function MemberSheet({
 
         {points.length > 0 && <FamilyMap points={points} focus={x.id} className="map-small" />}
 
+        <OfficialFind m={x} urgent={!online || timedOut} />
+
         <button className="link danger-text" onClick={onRemove}>
           목록에서 빼기
         </button>
       </div>
     </div>
+  );
+}
+
+/* ───────────── 공식 찾기 (앱이 꺼져 있어도) ───────────── */
+
+const PLATFORM_NAME = { ios: '아이폰', android: '안드로이드폰' } as const;
+
+function OfficialFind({ m, urgent }: { m: Member; urgent: boolean }) {
+  const kinds = m.platform === 'ios' || m.platform === 'android' ? [m.platform] : (['ios', 'android'] as const);
+  return (
+    <section className={`official ${urgent ? 'urgent' : ''}`}>
+      <div className="official-title">📴 앱이 꺼져 있어도 찾기</div>
+      <p className="small muted">
+        {m.platform === 'ios' || m.platform === 'android' ? `${m.name}님 폰은 ${PLATFORM_NAME[m.platform]}이에요. ` : ''}
+        공식 서비스는 어느 폰 브라우저에서나 열려요. 그 폰 주인의 계정으로 로그인하면 <b>위치 확인</b>과 <b>무음이어도 울리기</b>가 돼요.
+      </p>
+      {kinds.map((k) => (
+        <a
+          key={k}
+          className={`btn official-btn ${k}`}
+          href={OFFICIAL_FIND[k].url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => track('phone-finder', `official-${k}`)}
+        >
+          {k === 'ios' ? '' : '🤖 '}
+          {OFFICIAL_FIND[k].label} 열기
+          <span className="small">{OFFICIAL_FIND[k].account}로 로그인</span>
+        </a>
+      ))}
+    </section>
   );
 }
 
@@ -586,6 +620,20 @@ function InviteSheet({ open, code, onClose, onLeave }: { open: boolean; code: st
         <button className="btn primary big" onClick={share}>
           {copied ? '링크 복사됨 ✓' : '초대 링크 보내기'}
         </button>
+        <div className="guide">
+          <div className="official-title">📴 꺼진 폰까지 대비하기 (가족 모두 한 번만)</div>
+          <ol className="small">
+            <li>
+              <b>아이폰</b>: 설정 → 내 이름 → 나의 찾기 → <b>나의 iPhone 찾기</b> 켜기
+            </li>
+            <li>
+              <b>안드로이드</b>: 설정 → Google → <b>내 기기 찾기</b> 켜기
+            </li>
+            <li>
+              아이폰↔안드로이드 사이에 <b>항상 위치</b>를 보고 싶으면: <b>Google 지도</b> → 프로필 → 위치 공유 → 가족 추가 (양쪽 OS 다 돼요)
+            </li>
+          </ol>
+        </div>
         <button
           className="link danger-text"
           onClick={() => {

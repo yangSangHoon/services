@@ -35,6 +35,8 @@ const EVENT_LABEL: Record<string, string> = {
   family: '가족 만들기',
   locate: '위치 요청',
   ring: '소리 울리기',
+  'official-ios': 'iCloud 나의 찾기 열기',
+  'official-android': 'Google 내 기기 찾기 열기',
   share: '공유',
   save: '저장',
   record: '녹화',

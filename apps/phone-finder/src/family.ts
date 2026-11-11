@@ -2,7 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@lab/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { rpc } from './db';
-import { loadMembers, saveMembers, type Me, type Member } from './lib';
+import { loadMembers, PLATFORM, saveMembers, type Me, type Member, type Platform } from './lib';
 
 /**
  * 가족 채널.
@@ -36,6 +36,7 @@ type Row = {
   lng: number | null;
   acc: number | null;
   battery: number | null;
+  platform: Platform | null;
   updated_at: string;
 };
 
@@ -100,7 +101,7 @@ export function useFamily(code: string, me: Me, handlers: { onRing: (by: string)
     async (force = false) => {
       const p = posRef.current;
       const battery = await batteryLevel();
-      const here: Here = { ...meRef.current, lat: p?.lat, lng: p?.lng, acc: p?.acc, at: p?.at, battery };
+      const here: Here = { ...meRef.current, lat: p?.lat, lng: p?.lng, acc: p?.acc, at: p?.at, battery, platform: PLATFORM };
       send({ t: 'here', m: here });
       const now = Date.now();
       if (force || now - lastDbRef.current > DB_MIN_GAP_MS) {
@@ -114,6 +115,7 @@ export function useFamily(code: string, me: Me, handlers: { onRing: (by: string)
           p_lng: here.lng ?? null,
           p_acc: here.acc ?? null,
           p_battery: battery ?? null,
+          p_platform: PLATFORM,
         }).catch(() => {});
       }
     },
@@ -173,6 +175,7 @@ export function useFamily(code: string, me: Me, handlers: { onRing: (by: string)
             lng: r.lng ?? undefined,
             acc: r.acc ?? undefined,
             battery: r.battery ?? undefined,
+            platform: r.platform ?? undefined,
             at: r.lat != null ? Date.parse(r.updated_at) : undefined,
           })),
         ),

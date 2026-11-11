@@ -15,22 +15,26 @@ create table if not exists public.phone_finder_devices (
   lng        double precision check (lng between -180 and 180),
   acc        real check (acc >= 0),
   battery    smallint check (battery between 0 and 100),
+  platform   text check (platform in ('ios', 'android', 'other')),
   updated_at timestamptz not null default now(),
   primary key (family, device)
 );
 alter table public.phone_finder_devices enable row level security;
 revoke all on public.phone_finder_devices from anon, authenticated;
+-- 이미 만들어 둔 테이블에도 적용되게(재실행 안전)
+alter table public.phone_finder_devices add column if not exists platform text check (platform in ('ios', 'android', 'other'));
+drop function if exists public.phone_finder_report(text, uuid, text, text, double precision, double precision, real, smallint);
 
 -- 내 폰 정보(+위치) 남기기
 create or replace function public.phone_finder_report(
   p_family text, p_device uuid, p_name text, p_emoji text,
   p_lat double precision default null, p_lng double precision default null,
-  p_acc real default null, p_battery smallint default null
+  p_acc real default null, p_battery smallint default null, p_platform text default null
 ) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into phone_finder_devices as d (family, device, name, emoji, lat, lng, acc, battery, updated_at)
-  values (p_family, p_device, btrim(p_name), coalesce(p_emoji, '📱'), p_lat, p_lng, p_acc, p_battery, now())
+  insert into phone_finder_devices as d (family, device, name, emoji, lat, lng, acc, battery, platform, updated_at)
+  values (p_family, p_device, btrim(p_name), coalesce(p_emoji, '📱'), p_lat, p_lng, p_acc, p_battery, p_platform, now())
   on conflict (family, device) do update set
     name = excluded.name,
     emoji = excluded.emoji,
@@ -38,6 +42,7 @@ begin
     lng = coalesce(excluded.lng, d.lng),
     acc = case when excluded.lat is null then d.acc else excluded.acc end,
     battery = coalesce(excluded.battery, d.battery),
+    platform = coalesce(excluded.platform, d.platform),
     updated_at = now();
 end $$;
 
@@ -55,6 +60,6 @@ language sql security definer set search_path = public as $$
   delete from phone_finder_devices where family = p_family and device = p_device;
 $$;
 
-grant execute on function public.phone_finder_report(text, uuid, text, text, double precision, double precision, real, smallint) to anon, authenticated;
+grant execute on function public.phone_finder_report(text, uuid, text, text, double precision, double precision, real, smallint, text) to anon, authenticated;
 grant execute on function public.phone_finder_list(text) to anon, authenticated;
 grant execute on function public.phone_finder_remove(text, uuid) to anon, authenticated;

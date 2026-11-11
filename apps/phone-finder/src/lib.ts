@@ -2,6 +2,22 @@
 
 export type Me = { id: string; name: string; emoji: string };
 
+export type Platform = 'ios' | 'android' | 'other';
+
+/** 이 폰의 종류 (iPadOS 는 Mac 처럼 보여서 터치 여부로 구분) */
+export const PLATFORM: Platform = (() => {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'other';
+})();
+
+/** 앱이 꺼져 있어도 찾을 수 있는 공식 서비스 (어느 폰 브라우저에서나 열림) */
+export const OFFICIAL_FIND: Record<Exclude<Platform, 'other'>, { label: string; url: string; account: string }> = {
+  ios: { label: 'iCloud 나의 찾기', url: 'https://www.icloud.com/find', account: 'Apple ID' },
+  android: { label: 'Google 내 기기 찾기', url: 'https://www.google.com/android/find', account: 'Google 계정' },
+};
+
 export type Member = {
   id: string;
   name: string;
@@ -11,6 +27,7 @@ export type Member = {
   /** 위치 정확도(m) */
   acc?: number;
   battery?: number;
+  platform?: Platform;
   /** 위치를 잰 시각(ms) */
   at?: number;
   /** 마지막으로 신호가 온 시각(ms) — 접속 표시용 */
